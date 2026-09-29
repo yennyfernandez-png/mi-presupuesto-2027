@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Mi Presupuesto 2027</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f4f6f8; }
+    h1 { color: #1a365d; }
+    table { width: 100%; border-collapse: collapse; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-top: 15px; }
+    th { background: #2b6cb0; color: white; padding: 10px; text-align: left; }
+    td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
+    input { width: 100px; padding: 6px; font-weight: bold; border: 1px solid #3182ce; border-radius: 4px; background: #ebf8ff; }
+    .verde { color: #2f855a; font-weight: bold; }
+    .rojo { color: #9b2c2c; font-weight: bold; }
+    .amarillo { color: #d69e2e; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <h1>📊 Sistema de Presupuesto 2027</h1>
+  <p>Edita directamente en la columna <strong>PPTO 27</strong> para calcular el porcentaje de crecimiento en tiempo real.</p>
+
+  <table id="tabla-ppto">
+    <thead>
+      <tr>
+        <th>Gerencia</th>
+        <th>Familia</th>
+        <th>Clasificación</th>
+        <th>VTA 25 (USD)</th>
+        <th>VTA + PROY 26 (USD)</th>
+        <th style="background-color: #3182ce;">PPTO 27 (EDITABLE)</th>
+        <th>% CREC vs 26</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody id="cuerpo-tabla">
+      <tr><td colspan="8">Cargando datos del presupuesto...</td></tr>
+    </tbody>
+  </table>
+
+  <script>
+    const SUPABASE_URL = 'https://bcxchsnziypkfxmdkcse.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_EeL7gvqbcXgnpUaUv-TPGw_HW1fs0NB';
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function cargarPresupuesto() {
+      const { data, error } = await supabase.from('presupuesto_2027').select('*');
+      if (error) {
+        console.error('Error:', error);
+        document.getElementById('cuerpo-tabla').innerHTML = `<tr><td colspan="8" style="color:red;">Error al cargar datos: ${error.message}</td></tr>`;
+        return;
+      }
+      
+      const tbody = document.getElementById('cuerpo-tabla');
+      tbody.innerHTML = '';
+
+      if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8">No hay datos cargados aún en Supabase. Si agregas registros, aparecerán aquí.</td></tr>';
+        return;
+      }
+
+      data.forEach(item => {
+        const crec26 = item.vta_proy_26 > 0 
+          ? (((item.ppto_27 - item.vta_proy_26) / item.vta_proy_26) * 100).toFixed(1)
+          : 0;
+
+        let estadoHtml = '';
+        if (crec26 > 5) estadoHtml = '<span class="verde">▲ Creciendo</span>';
+        else if (crec26 >= 0) estadoHtml = '<span class="amarillo">► Estable</span>';
+        else estadoHtml = '<span class="rojo">▼ Decreciendo</span>';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.gerencia || '-'}</td>
+          <td>${item.nombre_familia || '-'}</td>
+          <td>${item.clasificacion || '-'}</td>
+          <td>$${Number(item.vta_25 || 0).toLocaleString()}</td>
+          <td>$${Number(item.vta_proy_26 || 0).toLocaleString()}</td>
+          <td style="background-color: #ebf8ff;">
+            <input type="number" value="${item.ppto_27 || 0}" onchange="guardarPpto('${item.id}', this.value)">
+          </td>
+          <td class="${crec26 >= 0 ? 'verde' : 'rojo'}">${crec26}%</td>
+          <td>${estadoHtml}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function guardarPpto(id, valor) {
+      const nuevoValor = parseFloat(valor) || 0;
+      await supabase.from('presupuesto_2027').update({ ppto_27: nuevoValor }).eq('id', id);
+      cargarPresupuesto();
+    }
+
+    cargarPresupuesto();
+  </script>
+</body>
+</html>
