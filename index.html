@@ -16,9 +16,10 @@
     .tab-button { padding: 6px 14px; font-size: 12px; font-weight: bold; border: none; background: #e2e8f0; color: #4a5568; border-radius: 6px 6px 0 0; cursor: pointer; }
     .tab-button.activo { background: #2b6cb0; color: white; }
 
-    .panel-controles { display: flex; gap: 12px; align-items: center; background: #fff; padding: 8px 12px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 10px; position: relative; flex-wrap: wrap; }
+    .panel-controles { display: flex; gap: 10px; align-items: center; background: #fff; padding: 8px 12px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 10px; position: relative; flex-wrap: wrap; }
     .filtro-item { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: bold; }
-    select { padding: 4px 8px; border-radius: 4px; border: 1px solid #cbd5e0; background: #f8fafc; font-size: 12px; }
+    select, input.input-busqueda { padding: 4px 8px; border-radius: 4px; border: 1px solid #cbd5e0; background: #f8fafc; font-size: 12px; }
+    input.input-busqueda { width: 180px; }
     
     .btn-group { display: flex; background: #edf2f7; border-radius: 4px; padding: 2px; }
     .btn-group button { border: none; background: transparent; padding: 5px 10px; font-size: 11px; font-weight: 600; cursor: pointer; border-radius: 3px; color: #4a5568; }
@@ -56,7 +57,7 @@
     td.texto { text-align: left; }
     tr:hover { background-color: #f7fafc; }
 
-    input.editable-ppto { width: 90px; padding: 3px 5px; font-weight: bold; border: 1px solid #3182ce; border-radius: 3px; background: #fff; text-align: right; font-size: 11px; color: #1a202c; }
+    input.editable-ppto { width: 100px; padding: 3px 5px; font-weight: bold; border: 1px solid #3182ce; border-radius: 3px; background: #fff; text-align: right; font-size: 11px; color: #1a202c; }
     input.editable-ppto:focus { outline: 2px solid #3182ce; background: #ebf8ff; }
 
     .verde { color: #2f855a; font-weight: bold; }
@@ -75,7 +76,7 @@
   <div class="header-title">
     <div>
       <h1>📊 Presupuesto Comercial 2027</h1>
-      <p class="subhead">Modifica <strong>PPTO 2027</strong> y presiona <strong>💾 Guardar Cambios</strong>.</p>
+      <p class="subhead">Totales automáticos por filtro y formato con comas en PPTO 2027.</p>
     </div>
     <span id="status-indicator" class="status-badge loading">⚡ Cargando...</span>
   </div>
@@ -91,6 +92,12 @@
       <select id="select-empresa" onchange="filtrarYRenderizar()">
         <option value="TODOS">🌍 Todas las Empresas</option>
       </select>
+    </div>
+
+    <!-- Buscador Integrado -->
+    <div class="filtro-item">
+      <span>🔍 Buscar:</span>
+      <input type="text" id="input-buscar" class="input-busqueda" placeholder="Buscar Razón / Familia..." oninput="filtrarYRenderizar()">
     </div>
 
     <div id="controles-vista-tabla" class="btn-group">
@@ -149,132 +156,5 @@
   </div>
 
   <script>
-    // URL PUBLICADA DE TU HOJA EN FORMATO CSV
     const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQg66Bztd1en9-FeRpYSCYw5EpCKENstLhX-JOfgW8Nyfv8woaFwE7H9dMsjwRKaansPEtXAkcVlAnp/pub?output=csv';
-    const SPREADSHEET_ID = '1fxDlguyE0s8R4plUXabyMpWoizPrXpLBKe8qfqPOKEY';
-    const GID = '1139127679';
-
-    let datosOriginales = [];
-    let vistaActual = 'detalle';
-    let seccionActiva = 'tabla';
-    let columnaOrden = 'vta_proy_26';
-    let ordenAscendente = false;
-
-    let chartClientesInst = null;
-    let chartFamiliasInst = null;
-    let chartHistoricoInst = null;
-
-    async function cargarDesdeGoogleSheet() {
-      actualizarEstado("🔄 Conectando...", "loading");
-
-      try {
-        const respuesta = await fetch(`${CSV_URL}&ts=${Date.now()}`);
-        const textoCSV = await respuesta.text();
-
-        if (!textoCSV || textoCSV.includes("<!DOCTYPE html>")) {
-          throw new Error("Respuesta no es un CSV válido");
-        }
-
-        const filas = parsearCSV(textoCSV);
-        procesarFilasCSV(filas);
-        actualizarEstado("✅ Sincronizado", "ready");
-      } catch (error) {
-        console.warn("Fallo lectura directa CSV, intentando caché...", error);
-        const cacheGuardado = localStorage.getItem('presupuesto_cache_datos');
-        if (cacheGuardado) {
-          datosOriginales = JSON.parse(cacheGuardado);
-          poblarFiltroEmpresas();
-          filtrarYRenderizar();
-          actualizarEstado("⚡ Modo Offline (Caché)", "ready");
-        } else {
-          document.getElementById('cuerpo-tabla').innerHTML = `
-            <tr><td colspan="16" style="color:red; text-align:center; padding:20px;">
-              ⚠️ Ocurrió una demora al conectar. Desmarca "Restringir el acceso" en Google Sheets.
-            </td></tr>`;
-        }
-      }
-    }
-
-    // PARSER CSV ROBUSTO (RESPETA COMILLAS Y COMAS INTERNAS)
-    function parsearCSV(texto) {
-      const lineas = texto.split(/\r\n|\n/);
-      const resultado = [];
-      
-      for (let i = 0; i < lineas.length; i++) {
-        const linea = lineas[i].trim();
-        if (!linea) continue;
-
-        const celdas = [];
-        let dentroComillas = false;
-        let campo = '';
-
-        for (let j = 0; j < linea.length; j++) {
-          const char = linea[j];
-          if (char === '"') {
-            dentroComillas = !dentroComillas;
-          } else if (char === ',' && !dentroComillas) {
-            celdas.push(campo);
-            campo = '';
-          } else {
-            campo += char;
-          }
-        }
-        celdas.push(campo);
-        resultado.push(celdas);
-      }
-      return resultado;
-    }
-
-    function procesarFilasCSV(filas) {
-      const data = [];
-      // Omitir encabezado (fila 0)
-      for (let i = 1; i < filas.length; i++) {
-        const c = filas[i];
-        if (!c || c.length < 5) continue;
-
-        data.push({
-          id: i,
-          id_empresa: limpiarTexto(c[0]),
-          razon_social_sec: limpiarTexto(c[1]),
-          familias_agrupadas: limpiarTexto(c[2]),
-          nombre_familia: limpiarTexto(c[3]),
-          ppto_2026: limpiarNumero(c[4]),
-          vta_proy_26: limpiarNumero(c[5]),
-          porc_proy: c[6] || '0%',
-          vta_25: limpiarNumero(c[7]),
-          vta_24: limpiarNumero(c[8]),
-          vta_23: limpiarNumero(c[9]),
-          ppto_2027: limpiarNumero(c[10]) || 0
-        });
-      }
-
-      // Aplicar ediciones locales guardadas si existen
-      const edicionesLocales = localStorage.getItem('presupuesto_ediciones_2027');
-      if (edicionesLocales) {
-        const mapaEdiciones = JSON.parse(edicionesLocales);
-        data.forEach(d => {
-          if (mapaEdiciones[d.id] !== undefined) {
-            d.ppto_2027 = mapaEdiciones[d.id];
-          }
-        });
-      }
-
-      datosOriginales = data;
-      localStorage.setItem('presupuesto_cache_datos', JSON.stringify(datosOriginales));
-      
-      poblarFiltroEmpresas();
-      filtrarYRenderizar();
-    }
-
-    function limpiarTexto(val) {
-      if (!val) return '-';
-      return val.toString().replace(/^"|"$/g, '').trim();
-    }
-
-    function limpiarNumero(val) {
-      if (!val || val === '-') return 0;
-      let str = val.toString().replace(/^"|"$/g, '').trim();
-      
-      if (str.includes('.') && str.includes(',')) {
-        if (str.indexOf('.') < str.indexOf(',')) {
-          str = str.replace(/\./g, '').replace(',', '.');
+    const SPREADSHEET_ID = '1fxDlguyE0
