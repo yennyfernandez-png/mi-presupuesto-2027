@@ -33,7 +33,6 @@
     .dropdown-item { padding: 8px 12px; font-size: 12px; color: #2d3748; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 500; }
     .dropdown-item:hover { background: #ebf8ff; color: #2b6cb0; }
 
-    /* LAYOUT PRINCIPAL PESTAÑA 2 CON PANEL DE CUADRE A UN COSTADO */
     .layout-pestana2 { display: flex; gap: 12px; width: 100%; align-items: flex-start; }
     .tabla-container { flex: 1; overflow-x: auto; background: #fff; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); max-height: 75vh; overflow-y: auto; position: relative; }
     
@@ -95,9 +94,9 @@
   <div class="header-title">
     <div>
       <h1>📊 Presupuesto Comercial 2027</h1>
-      <p class="subhead">Pestaña 1: Meta Macro | Pestaña 2: Detalle por Cliente y Cuadre Lateral | Pestaña 3: Gráficos</p>
+      <p class="subhead">Modo 100% Independiente (Lectura Directa de datos_2027.csv)</p>
     </div>
-    <span id="status-indicator" class="status-badge">⚡ Conectado</span>
+    <span id="status-indicator" class="status-badge">⚡ Listo</span>
   </div>
 
   <div class="tabs-main">
@@ -110,7 +109,7 @@
     <button id="btn-limpiar-filtros" class="tab-button" style="background:#edf2f7; color:#2d3748;" onclick="limpiarTodosFiltrosExcel()">🧹 Limpiar Filtros Excel</button>
 
     <label class="btn-cargar-file">
-      📁 Cargar CSV
+      📁 Cargar nuevo CSV
       <input type="file" id="input-file-csv" accept=".csv" style="display:none;" onchange="cargarDesdeArchivoLocal(this)">
     </label>
 
@@ -132,7 +131,6 @@
     </div>
   </div>
 
-  <!-- POPUP DE FILTRO EXCEL -->
   <div id="popup-filtro-excel" class="excel-filter-popup">
     <div class="filter-opt-item" onclick="ejecutarOrdenExcel('asc')">
       <span id="label-ord-asc">🔼 Ordenar de A a Z</span>
@@ -153,7 +151,6 @@
     </div>
   </div>
 
-  <!-- LAYOUT DE TABLA Y PANEL LATERAL -->
   <div class="layout-pestana2">
     <div id="seccion-tabla" class="tabla-container">
       <table>
@@ -162,12 +159,11 @@
           <tr id="fila-totales" class="fila-totales"></tr>
         </thead>
         <tbody id="cuerpo-tabla">
-          <tr><td colspan="16" style="text-align:center; padding:20px;">Cargando datos del Sheet...</td></tr>
+          <tr><td colspan="16" style="text-align:center; padding:20px;">Cargando datos_2027.csv...</td></tr>
         </tbody>
       </table>
     </div>
 
-    <!-- PANEL LATERAL DE CUADRE POR FAMILIA PARA PESTAÑA 2 -->
     <div id="panel-cuadre-lateral" class="panel-cuadre-lateral" style="display:none;">
       <h3>⚖️ Cuadre por Familia (Macro vs Clientes)</h3>
       <table style="width:100%;">
@@ -202,10 +198,6 @@
   </div>
 
   <script>
-    // ID DE TU NUEVO GOOGLE SHEET
-    const SPREADSHEET_ID = '1FqexM5u3Q1M4fQnELuC2m4t-oT9_ge3CuPxWaaYy9Ug';
-    const GID = '1869901348';
-
     let datosOriginales = [];
     let metasMacroFamilia = {};
     let pestanaActiva = 'familia-macro';
@@ -219,8 +211,8 @@
     let chartFamiliasInst = null;
     let chartHistoricoInst = null;
 
-    function iniciarAplicacion() {
-      // Intentar cargar datos de memoria local si existen
+    async function iniciarAplicacion() {
+      // 1. Cargar memoria guardada
       const cacheGuardado = localStorage.getItem('presupuesto_cache_datos');
       const edicionesLocales = localStorage.getItem('presupuesto_ediciones_2027');
       const metasGuardadas = localStorage.getItem('presupuesto_metas_macro');
@@ -242,82 +234,28 @@
         try { metasMacroFamilia = JSON.parse(metasGuardadas); } catch(e){}
       }
 
+      // 2. Leer automáticamente datos_2027.csv de GitHub
+      try {
+        const res = await fetch('datos_2027.csv?ts=' + Date.now());
+        if (res.ok) {
+          const texto = await res.text();
+          const filas = parsearCSV(texto);
+          if (filas.length > 1) {
+            procesarFilasCSV(filas);
+            actualizarEstado("✅ Sincronizado desde datos_2027.csv", "status-badge");
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Leyendo memoria cache local...");
+      }
+
       if (datosOriginales.length > 0) {
         filtrarYRenderizar();
+        actualizarEstado("📷 Cargado desde memoria local", "status-badge");
+      } else {
+        document.getElementById('cuerpo-tabla').innerHTML = '<tr><td colspan="16" style="text-align:center; padding:20px;">Sube el archivo <code>datos_2027.csv</code> o utiliza el botón <strong>📁 Cargar nuevo CSV</strong>.</td></tr>';
       }
-
-      // Cargar en vivo de Google Sheets
-      consultarGoogleSheets();
-    }
-
-    function consultarGoogleSheets() {
-      const scriptViejo = document.getElementById('script-jsonp-gviz');
-      if (scriptViejo) scriptViejo.remove();
-
-      const script = document.createElement('script');
-      script.id = 'script-jsonp-gviz';
-      script.src = 'https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID + '/gviz/tq?gid=' + GID + '&tqx=responseHandler:recibirDatosGViz&ts=' + Date.now();
-      
-      script.onerror = function() {
-        if (datosOriginales.length === 0) {
-          document.getElementById('cuerpo-tabla').innerHTML = '<tr><td colspan="16" style="text-align:center; color:red; padding:20px;">⚠️ Revisa la opción Publicar en la Web en Google Sheets o carga mediante el botón <strong>📁 Cargar CSV</strong>.</td></tr>';
-        }
-      };
-
-      document.body.appendChild(script);
-    }
-
-    window.recibirDatosGViz = function(jsonDatos) {
-      if (jsonDatos && jsonDatos.table) {
-        const data = procesarFilasGViz(jsonDatos.table);
-
-        const edicionesLocales = localStorage.getItem('presupuesto_ediciones_2027');
-        if (edicionesLocales) {
-          try {
-            const mapaEdiciones = JSON.parse(edicionesLocales);
-            data.forEach(function(d) {
-              if (mapaEdiciones[d.id] !== undefined) d.ppto_2027 = mapaEdiciones[d.id];
-            });
-          } catch(e) {}
-        }
-
-        datosOriginales = data;
-        localStorage.setItem('presupuesto_cache_datos', JSON.stringify(datosOriginales));
-        filtrarYRenderizar();
-        actualizarEstado("✅ Conectado a Google Sheets (" + datosOriginales.length + " filas)", "status-badge");
-      }
-    };
-
-    function procesarFilasGViz(tabla) {
-      const data = [];
-      const filas = tabla.rows;
-
-      for (let i = 0; i < filas.length; i++) {
-        const c = filas[i].c;
-        if (!c || c.length < 5) continue;
-
-        data.push({
-          id: i + 1,
-          id_empresa: obtenerVal(c[0]),
-          gerencia: obtenerVal(c[1]),
-          razon_social_sec: obtenerVal(c[2]),
-          familias_agrupadas: obtenerVal(c[3]),
-          nombre_familia: obtenerVal(c[4]),
-          ppto_2026: limpiarNumero(obtenerVal(c[5])),
-          vta_proy_26: limpiarNumero(obtenerVal(c[6])),
-          porc_proy: obtenerVal(c[7]) || '0%',
-          vta_25: limpiarNumero(obtenerVal(c[8])),
-          vta_24: limpiarNumero(obtenerVal(c[9])),
-          vta_23: limpiarNumero(obtenerVal(c[10])),
-          ppto_2027: limpiarNumero(obtenerVal(c[11])) || 0
-        });
-      }
-      return data;
-    }
-
-    function obtenerVal(celda) {
-      if (!celda) return '-';
-      return celda.v !== null && celda.v !== undefined ? celda.v.toString().trim() : '-';
     }
 
     function cargarDesdeArchivoLocal(input) {
@@ -366,7 +304,7 @@
       const data = [];
       for (let i = 1; i < filas.length; i++) {
         const c = filas[i];
-        if (!c || c.length < 5) continue;
+        if (!c || c.length < 4) continue;
 
         data.push({
           id: i,
@@ -383,6 +321,16 @@
           vta_23: limpiarNumero(c[10]),
           ppto_2027: limpiarNumero(c[11]) || 0
         });
+      }
+
+      const edicionesLocales = localStorage.getItem('presupuesto_ediciones_2027');
+      if (edicionesLocales) {
+        try {
+          const mapaEdiciones = JSON.parse(edicionesLocales);
+          data.forEach(function(d) {
+            if (mapaEdiciones[d.id] !== undefined) d.ppto_2027 = mapaEdiciones[d.id];
+          });
+        } catch(e) {}
       }
 
       datosOriginales = data;
@@ -639,59 +587,4 @@
       const tbody = document.getElementById('cuerpo-tabla');
       const txtContador = document.getElementById('txt-contador-filas');
 
-      if (txtContador) {
-        txtContador.innerText = "Mostrando " + datos.length + " filas de " + (pestanaActiva === 'familia-macro' ? construirDatosMacroFamilia().length : datosOriginales.length) + " totales";
-      }
-
-      if (datos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="16" style="padding:20px; text-align:center;">No hay registros disponibles. Presione <strong>🧹 Limpiar Filtros Excel</strong>.</td></tr>';
-        trTotales.innerHTML = '';
-        return;
-      }
-
-      function crearHeaderHTML(label, campo, esNum) {
-        const tieneFiltro = filtrosExcelActivos[campo] !== undefined;
-        const claseBtn = tieneFiltro ? "btn-filter-excel activo" : "btn-filter-excel";
-        return '<th><div class="th-container"><span>' + label + '</span><button class="' + claseBtn + '" onclick="abrirPopupFiltroExcel(event, \'' + campo + '\', ' + esNum + ')">🔻</button></div></th>';
-      }
-
-      let filasParaMostrar = [...datos];
-
-      if (pestanaActiva === 'familia-macro') {
-        const totalPpto26 = datos.reduce((s, d) => s + (d.ppto_2026 || 0), 0);
-        const totalVta26  = datos.reduce((s, d) => s + (d.vta_proy_26 || 0), 0);
-        const totalVta25  = datos.reduce((s, d) => s + (d.vta_25 || 0), 0);
-        const totalVta24  = datos.reduce((s, d) => s + (d.vta_24 || 0), 0);
-        const totalVta23  = datos.reduce((s, d) => s + (d.vta_23 || 0), 0);
-        const totalPpto27Macro = datos.reduce((s, d) => s + (d.ppto_2027_macro || 0), 0);
-
-        thead.innerHTML = crearHeaderHTML('Id_empresa', 'id_empresa', false) +
-          crearHeaderHTML('Familia Agrupada (Macro)', 'familias_agrupadas', false) +
-          crearHeaderHTML('% Part. Venta', 'pctPart', true) +
-          crearHeaderHTML('% Acumulado', 'pctAcum', true) +
-          crearHeaderHTML('PPTO 2026', 'ppto_2026', true) +
-          crearHeaderHTML('VTA + PROY', 'vta_proy_26', true) +
-          crearHeaderHTML('VTA 25', 'vta_25', true) +
-          crearHeaderHTML('VTA 24', 'vta_24', true) +
-          crearHeaderHTML('VTA 23', 'vta_23', true) +
-          crearHeaderHTML('PPTO 2027 MACRO (META)', 'ppto_2027_macro', true) +
-          '<th>VTA 26VS27 MACRO</th>';
-
-        trTotales.innerHTML = '<td class="texto" colspan="2">TOTAL META MACRO</td>' +
-          '<td>100.0%</td><td>100.0%</td>' +
-          '<td>$' + formatearNumeroVisual(totalPpto26) + '</td>' +
-          '<td>$' + formatearNumeroVisual(totalVta26) + '</td>' +
-          '<td>$' + formatearNumeroVisual(totalVta25) + '</td>' +
-          '<td>$' + formatearNumeroVisual(totalVta24) + '</td>' +
-          '<td>$' + formatearNumeroVisual(totalVta23) + '</td>' +
-          '<td id="tot-ppto27-cell" style="background:#d6bcfa; color:#2b6cb0;">$' + formatearNumeroVisual(totalPpto27Macro) + '</td>' +
-          '<td>' + calcVar(totalVta26, totalPpto27Macro) + '%</td>';
-
-        tbody.innerHTML = '';
-        filasParaMostrar.forEach(function(row) {
-          const metaMacro = Number(row.ppto_2027_macro || 0);
-          const v26 = Number(row.vta_proy_26 || 0);
-          const varMacro = calcVar(v26, metaMacro);
-
-          const tr = document.createElement('tr');
-          tr.innerHTML = '<td class="texto">' + row.
+      if (txtContador
