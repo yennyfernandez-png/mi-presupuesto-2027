@@ -85,4 +85,155 @@
 
     .dashboard-container { display: none; gap: 15px; flex-wrap: wrap; }
     .chart-card { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); flex: 1; min-width: 480px; }
-    .chart-card h3 { font-size: 13px; color: #1a365d; margin-top: 0; margin-bottom: 12px;
+    .chart-card h3 { font-size: 13px; color: #1a365d; margin-top: 0; margin-bottom: 12px; border-bottom: 1px solid #edf2f7; padding-bottom: 6px; }
+  </style>
+</head>
+<body>
+
+  <div class="header-title">
+    <div>
+      <h1>📊 Presupuesto Comercial 2027</h1>
+      <p class="subhead">Modo Foto Mensual. Se consulta a Google Sheets 1 sola vez al mes.</p>
+    </div>
+    <span id="status-indicator" class="status-badge snapshot">📷 Foto Mensual</span>
+  </div>
+
+  <div class="tabs-main">
+    <button id="tab-tabla" class="tab-button activo" onclick="mostrarSeccion('tabla')">📋 Tabla Comercial</button>
+    <button id="tab-graficos" class="tab-button" onclick="mostrarSeccion('graficos')">📈 Gráficos y Dashboard</button>
+  </div>
+
+  <div class="panel-controles">
+    <div id="controles-vista-tabla" class="btn-group">
+      <button id="btn-detalle" class="activo" onclick="cambiarVista('detalle')">Ver Detallado</button>
+      <button id="btn-razon" onclick="cambiarVista('razon')">Por Razón Social (Pareto %)</button>
+      <button id="btn-familia" onclick="cambiarVista('familia')">Por Familia Agrupada (Pareto %)</button>
+    </div>
+
+    <button id="btn-limpiar-filtros" class="tab-button" style="background:#edf2f7; color:#2d3748;" onclick="limpiarTodosFiltrosExcel()">🧹 Limpiar Filtros Excel</button>
+
+    <button id="btn-guardar-cloud" class="btn-guardar" onclick="guardarLocalmente()">💾 Guardar Cambios</button>
+
+    <div class="menu-looker-container">
+      <button class="btn-tres-puntos" onclick="toggleMenuLooker(event)">⋮</button>
+      <div id="menu-dropdown-looker" class="dropdown-menu-looker">
+        <div class="dropdown-item" onclick="forzarActualizacionMensual()">
+          <span>🔄</span> Actualizar Foto Mensual
+        </div>
+        <div class="dropdown-item" onclick="exportarAGoogleSheets()">
+          <span>📊</span> Abrir Google Sheet original
+        </div>
+        <div class="dropdown-item" onclick="descargarCSV()">
+          <span>📄</span> Exportar datos (CSV / Excel)
+        </div>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-item" onclick="copiarAlPortapapeles()">
+          <span>📋</span> Copiar al portapapeles
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- POPUP DE FILTRO EXCEL -->
+  <div id="popup-filtro-excel" class="excel-filter-popup">
+    <div class="filter-opt-item" onclick="ejecutarOrdenExcel('asc')">
+      <span id="label-ord-asc">🔼 Ordenar de A a Z</span>
+    </div>
+    <div class="filter-opt-item" onclick="ejecutarOrdenExcel('desc')">
+      <span id="label-ord-desc">🔽 Ordenar de Z a A</span>
+    </div>
+    <div class="filter-divider"></div>
+    <input type="text" id="popup-search-input" class="filter-search-box" placeholder="Buscar valores..." oninput="filtrarCheckboxPopup()">
+    <div class="filter-checkbox-item" style="border-bottom: 1px solid #e2e8f0; font-weight: bold;">
+      <input type="checkbox" id="chk-select-all" checked onchange="toggleSelectAllPopup(this)">
+      <label for="chk-select-all">(Seleccionar todo)</label>
+    </div>
+    <div id="popup-checkbox-container" class="filter-checkbox-list"></div>
+    <div class="filter-actions">
+      <button class="btn-excel-action btn-excel-cancel" onclick="cerrarPopupFiltroExcel()">Cancelar</button>
+      <button class="btn-excel-action btn-excel-accept" onclick="aplicarFiltroPopupExcel()">Aceptar</button>
+    </div>
+  </div>
+
+  <div id="seccion-tabla" class="tabla-container">
+    <table>
+      <thead>
+        <tr id="encabezado-tabla"></tr>
+        <tr id="fila-totales" class="fila-totales"></tr>
+      </thead>
+      <tbody id="cuerpo-tabla">
+        <tr><td colspan="16" style="text-align:center; padding:20px;">Cargando foto mensual...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="seccion-graficos" class="dashboard-container">
+    <div class="chart-card">
+      <h3>🏆 Top 10 Clientes: Comparativa Histórica vs PPTO 2027</h3>
+      <canvas id="chartClientes" height="230"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>📦 Presupuesto 2027 vs PPTO 2026 y VTA 25 por Familia</h3>
+      <canvas id="chartFamilias" height="230"></canvas>
+    </div>
+    <div class="chart-card" style="min-width: 100%;">
+      <h3>📈 Tendencia Histórica Global (Ventas 2023-2026 vs PPTO 2026 y PPTO 2027)</h3>
+      <canvas id="chartHistorico" height="130"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const SPREADSHEET_ID = '1fxDlguyE0s8R4plUXabyMpWoizPrXpLBKe8qfqPOKEY';
+    const GID = '1139127679';
+
+    let datosOriginales = [];
+    let vistaActual = 'detalle';
+    let seccionActiva = 'tabla';
+    let columnaOrden = 'vta_proy_26';
+    let ordenAscendente = false;
+
+    let filtrosExcelActivos = {};
+    let campoPopupActual = null;
+
+    let chartClientesInst = null;
+    let chartFamiliasInst = null;
+    let chartHistoricoInst = null;
+
+    function gestionarCargaMensual() {
+      const fechaActual = new Date();
+      const claveMesActual = (fechaActual.getMonth() + 1) + '-' + fechaActual.getFullYear();
+      const ultimoMesConsultado = localStorage.getItem('presupuesto_mes_consulta');
+      const fotoGuardada = localStorage.getItem('presupuesto_cache_datos');
+
+      if (ultimoMesConsultado === claveMesActual && fotoGuardada) {
+        try {
+          datosOriginales = JSON.parse(fotoGuardada);
+          filtrarYRenderizar();
+          actualizarEstado('📷 Foto Mensual (' + claveMesActual + ')', "snapshot");
+          return;
+        } catch (e) {
+          console.warn("Fallo lectura local, reintentando consulta...");
+        }
+      }
+
+      consultarGoogleSheetsYGuardarFoto(claveMesActual);
+    }
+
+    function consultarGoogleSheetsYGuardarFoto(claveMes) {
+      actualizarEstado("🔄 Tomando foto de Google Sheets...", "loading");
+
+      const scriptViejo = document.getElementById('script-jsonp-gviz');
+      if (scriptViejo) scriptViejo.remove();
+
+      const script = document.createElement('script');
+      script.id = 'script-jsonp-gviz';
+      script.src = 'https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID + '/gviz/tq?gid=' + GID + '&tqx=responseHandler:recibirDatosGViz&ts=' + Date.now();
+      
+      script.onerror = function() {
+        const fotoGuardada = localStorage.getItem('presupuesto_cache_datos');
+        if (fotoGuardada) {
+          datosOriginales = JSON.parse(fotoGuardada);
+          filtrarYRenderizar();
+          actualizarEstado("📷 Foto Offline Guardada", "snapshot");
+        } else {
+          document.getElementById('cuerpo-tabla
