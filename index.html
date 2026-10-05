@@ -25,7 +25,6 @@
     th { background: #2d3748; color: white; padding: 6px 4px; font-weight: 600; text-align: center; position: sticky; top: 0; z-index: 10; white-space: nowrap; }
     th.highlight { background: #2b6cb0; }
     
-    /* Fila de Totales Generales Fija en Cabecera */
     tr.fila-totales { background: #ebf8ff; font-weight: bold; position: sticky; top: 25px; z-index: 9; border-bottom: 2px solid #3182ce; }
     tr.fila-totales td { padding: 6px 4px; border-bottom: 2px solid #3182ce; color: #1a365d; font-size: 10px; text-align: right; }
     tr.fila-totales td.texto { text-align: left; }
@@ -38,7 +37,6 @@
     .verde { color: #2f855a; font-weight: bold; }
     .rojo { color: #e53e3e; font-weight: bold; }
 
-    /* Badges Pareto */
     .badge-top { background: #c6f6d5; color: #22543d; font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: bold; margin-left: 4px; }
     .badge-sec { background: #e2e8f0; color: #4a5568; font-size: 9px; padding: 1px 5px; border-radius: 3px; margin-left: 4px; }
   </style>
@@ -82,26 +80,33 @@
   <script>
     const SPREADSHEET_ID = '1fxDlguyE0s8R4plUXabyMpWoizPrXpLBKe8qfqPOKEY';
     const GID = '1139127679';
+    const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
+    const PROXY_URL = `https://api.allorigins.win/get?url=${encodeURIComponent(GVIZ_URL)}`;
 
     let datosOriginales = [];
     let vistaActual = 'detalle';
 
-    function cargarDesdeGoogleSheet() {
-      // Método seguro via Script Tag / JSONP de Google Visualization
-      const script = document.createElement('script');
-      script.src = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?gid=${GID}&tqx=responseHandler:recibirDatosGViz`;
-      document.body.appendChild(script);
-    }
-
-    window.recibirDatosGViz = function(jsonDatos) {
-      if (jsonDatos && jsonDatos.table) {
+    async function cargarDesdeGoogleSheet() {
+      try {
+        const response = await fetch(PROXY_URL);
+        const jsonProxy = await response.json();
+        const texto = jsonProxy.contents;
+        
+        const jsonTexto = texto.substring(texto.indexOf("{"), texto.lastIndexOf("}") + 1);
+        const jsonDatos = JSON.parse(jsonTexto);
+        
         datosOriginales = procesarFilasGViz(jsonDatos.table);
         poblarFiltroEmpresas();
         filtrarYRenderizar();
-      } else {
-        document.getElementById('cuerpo-tabla').innerHTML = '<tr><td colspan="16" style="color:red; text-align:center; padding:20px;">Error al cargar datos desde Google Sheets.</td></tr>';
+      } catch (error) {
+        console.error("Error:", error);
+        document.getElementById('cuerpo-tabla').innerHTML = `
+          <tr><td colspan="16" style="color:red; text-align:center; padding:20px;">
+            ⚠️ Error al conectar con Google Sheets.<br>
+            Verifica que la hoja esté compartida como "Cualquier persona con el enlace".
+          </td></tr>`;
       }
-    };
+    }
 
     function procesarFilasGViz(tabla) {
       const data = [];
@@ -185,7 +190,6 @@
         return;
       }
 
-      // Cálculo de Totales Generales
       const totalPpto26 = datos.reduce((s, d) => s + (d.ppto_2026 || 0), 0);
       const totalVta26  = datos.reduce((s, d) => s + (d.vta_proy_26 || 0), 0);
       const totalVta25  = datos.reduce((s, d) => s + (d.vta_25 || 0), 0);
@@ -222,10 +226,13 @@
 
         trTotales.innerHTML = `
           <td class="texto" colspan="4">TOTAL GENERAL</td>
-          <td>$${Math.round(totalPpto26).toLocaleString()}</td>           <td>$${Math.round(totalVta26).toLocaleString()}</td>
+          <td>$${Math.round(totalPpto26).toLocaleString()}</td>
+          <td>$${Math.round(totalVta26).toLocaleString()}</td>
           <td>${totPorcProy}</td>
-          <td>$${Math.round(totalVta25).toLocaleString()}</td>           <td>$${Math.round(totalVta24).toLocaleString()}</td>
-          <td>$${Math.round(totalVta23).toLocaleString()}</td>           <td style="background:#d6bcfa; color:#2b6cb0;">$${Math.round(totalPpto27).toLocaleString()}</td>
+          <td>$${Math.round(totalVta25).toLocaleString()}</td>
+          <td>$${Math.round(totalVta24).toLocaleString()}</td>
+          <td>$${Math.round(totalVta23).toLocaleString()}</td>
+          <td style="background:#d6bcfa; color:#2b6cb0;">$${Math.round(totalPpto27).toLocaleString()}</td>
           <td class="${totVar26_27 >= 0 ? 'verde' : 'rojo'}">${totVar26_27}%</td>
           <td class="${totVar26_25 >= 0 ? 'verde' : 'rojo'}">${totVar26_25}%</td>
           <td class="${totVar26_24 >= 0 ? 'verde' : 'rojo'}">${totVar26_24}%</td>
@@ -256,7 +263,126 @@
           <td class="texto" colspan="2">TOTAL GENERAL</td>
           <td>100.0%</td>
           <td>100.0%</td>
-          <td>$${Math.round(totalPpto26).toLocaleString()}</td>           <td>$${Math.round(totalVta26).toLocaleString()}</td>
-          <td>$${Math.round(totalVta25).toLocaleString()}</td>           <td>$${Math.round(totalVta24).toLocaleString()}</td>
-          <td>$${Math.round(totalVta23).toLocaleString()}</td>           <td style="background:#d6bcfa; color:#2b6cb0;">$${Math.round(totalPpto27).toLocaleString()}</td>
-          <td class="${totVar26_27 >= 0 ? 'verde' : 'rojo'}">${totVar26_
+          <td>$${Math.round(totalPpto26).toLocaleString()}</td>
+          <td>$${Math.round(totalVta26).toLocaleString()}</td>
+          <td>$${Math.round(totalVta25).toLocaleString()}</td>
+          <td>$${Math.round(totalVta24).toLocaleString()}</td>
+          <td>$${Math.round(totalVta23).toLocaleString()}</td>
+          <td style="background:#d6bcfa; color:#2b6cb0;">$${Math.round(totalPpto27).toLocaleString()}</td>
+          <td class="${totVar26_27 >= 0 ? 'verde' : 'rojo'}">${totVar26_27}%</td>
+          <td class="${totVar26_25 >= 0 ? 'verde' : 'rojo'}">${totVar26_25}%</td>
+          <td class="${totVar26_24 >= 0 ? 'verde' : 'rojo'}">${totVar26_24}%</td>
+          <td class="${totVar26_23 >= 0 ? 'verde' : 'rojo'}">${totVar26_23}%</td>
+        `;
+
+        const mapaAgrupado = {};
+        datos.forEach(item => {
+          const clave = item[campoClave] || 'SIN CLASIFICAR';
+          if (!mapaAgrupado[clave]) {
+            mapaAgrupado[clave] = {
+              id_empresa: item.id_empresa || '-',
+              agrupador: clave,
+              ppto_2026: 0,
+              vta_proy_26: 0,
+              vta_25: 0,
+              vta_24: 0,
+              vta_23: 0,
+              ppto_2027: 0
+            };
+          }
+          mapaAgrupado[clave].ppto_2026 += Number(item.ppto_2026 || 0);
+          mapaAgrupado[clave].vta_proy_26 += Number(item.vta_proy_26 || 0);
+          mapaAgrupado[clave].vta_25 += Number(item.vta_25 || 0);
+          mapaAgrupado[clave].vta_24 += Number(item.vta_24 || 0);
+          mapaAgrupado[clave].vta_23 += Number(item.vta_23 || 0);
+          mapaAgrupado[clave].ppto_2027 += Number(item.ppto_2027 || 0);
+        });
+
+        filasParaMostrar = Object.values(mapaAgrupado).sort((a, b) => b.vta_proy_26 - a.vta_proy_26);
+
+        let acumuladoPct = 0;
+        filasParaMostrar.forEach(row => {
+          row.pctPart = totalVta26 > 0 ? (row.vta_proy_26 / totalVta26) * 100 : 0;
+          acumuladoPct += row.pctPart;
+          row.pctAcum = acumuladoPct;
+        });
+      }
+
+      tbody.innerHTML = '';
+      filasParaMostrar.forEach(row => {
+        const ppto27 = Number(row.ppto_2027 || 0);
+        const v26 = Number(row.vta_proy_26 || 0);
+
+        const var26_27 = calcVar(v26, ppto27);
+        const var26_25 = calcVar(v26, row.vta_25);
+        const var26_24 = calcVar(v26, row.vta_24);
+        const var26_23 = calcVar(v26, row.vta_23);
+
+        const porcProyCalc = row.ppto_2026 > 0 ? ((v26 / row.ppto_2026) * 100).toFixed(0) + '%' : (row.porc_proy || '0%');
+
+        const tr = document.createElement('tr');
+        if (vistaActual === 'detalle') {
+          tr.innerHTML = `
+            <td class="texto">${row.id_empresa}</td>
+            <td class="texto" title="${row.razon_social_sec}">${row.razon_social_sec}</td>
+            <td class="texto" title="${row.familias_agrupadas}">${row.familias_agrupadas}</td>
+            <td class="texto" title="${row.nombre_familia}">${row.nombre_familia}</td>
+            <td>$${Math.round(row.ppto_2026).toLocaleString()}</td>
+            <td>$${Math.round(v26).toLocaleString()}</td>
+            <td>${porcProyCalc}</td>
+            <td>$${Math.round(row.vta_25).toLocaleString()}</td>
+            <td>$${Math.round(row.vta_24).toLocaleString()}</td>
+            <td>$${Math.round(row.vta_23).toLocaleString()}</td>
+            <td style="background:#ebf8ff;">
+              <input type="number" class="editable-ppto" value="${ppto27}" onchange="actualizarPpto(${row.id}, this.value)">
+            </td>
+            <td class="${var26_27 >= 0 ? 'verde' : 'rojo'}">${var26_27}%</td>
+            <td class="${var26_25 >= 0 ? 'verde' : 'rojo'}">${var26_25}%</td>
+            <td class="${var26_24 >= 0 ? 'verde' : 'rojo'}">${var26_24}%</td>
+            <td class="${var26_23 >= 0 ? 'verde' : 'rojo'}">${var26_23}%</td>
+          `;
+        } else {
+          const esTop80 = row.pctAcum <= 80 || (row.pctAcum - row.pctPart) < 80;
+          const badgeHtml = esTop80 ? '<span class="badge-top">Top 80%</span>' : '<span class="badge-sec">Secundario</span>';
+
+          tr.innerHTML = `
+            <td class="texto">${row.id_empresa}</td>
+            <td class="texto" title="${row.agrupador}"><strong>${row.agrupador}</strong> ${badgeHtml}</td>
+            <td><strong>${row.pctPart.toFixed(1)}%</strong></td>
+            <td>${row.pctAcum.toFixed(1)}%</td>
+            <td>$${Math.round(row.ppto_2026).toLocaleString()}</td>
+            <td>$${Math.round(v26).toLocaleString()}</td>
+            <td>$${Math.round(row.vta_25).toLocaleString()}</td>
+            <td>$${Math.round(row.vta_24).toLocaleString()}</td>
+            <td>$${Math.round(row.vta_23).toLocaleString()}</td>
+            <td style="background:#ebf8ff;">
+              <input type="number" class="editable-ppto" value="${ppto27}" onchange="actualizarPptoAgrupado('${row.agrupador}', this.value)">
+            </td>
+            <td class="${var26_27 >= 0 ? 'verde' : 'rojo'}">${var26_27}%</td>
+            <td class="${var26_25 >= 0 ? 'verde' : 'rojo'}">${var26_25}%</td>
+            <td class="${var26_24 >= 0 ? 'verde' : 'rojo'}">${var26_24}%</td>
+            <td class="${var26_23 >= 0 ? 'verde' : 'rojo'}">${var26_23}%</td>
+          `;
+        }
+        tbody.appendChild(tr);
+      });
+    }
+
+    function actualizarPpto(id, valor) {
+      const nuevoValor = parseFloat(valor) || 0;
+      const item = datosOriginales.find(d => d.id === id);
+      if (item) item.ppto_2027 = nuevoValor;
+
+      filtrarYRenderizar();
+    }
+
+    function actualizarPptoAgrupado(agrupadorClave, valorTotalNuevo) {
+      const nuevoTotal = parseFloat(valorTotalNuevo) || 0;
+      const campoClave = vistaActual === 'razon' ? 'razon_social_sec' : 'familias_agrupadas';
+      const itemsGrupo = datosOriginales.filter(d => (d[campoClave] || 'SIN CLASIFICAR') === agrupadorClave);
+
+      const vtaTotalGrupo = itemsGrupo.reduce((s, i) => s + (i.vta_proy_26 || 0), 0);
+
+      itemsGrupo.forEach(item => {
+        if (vtaTotalGrupo > 0) {
+          item.ppto_2027 = Math.round((item.vta_
