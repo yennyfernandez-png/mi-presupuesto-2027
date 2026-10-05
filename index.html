@@ -19,10 +19,14 @@
     .btn-group button { border: none; background: transparent; padding: 5px 10px; font-size: 11px; font-weight: 600; cursor: pointer; border-radius: 3px; color: #4a5568; }
     .btn-group button.activo { background: #2b6cb0; color: white; }
 
+    /* Indicator de Estado */
+    .status-badge { font-size: 10px; padding: 3px 8px; border-radius: 12px; background: #e2e8f0; color: #4a5568; font-weight: 600; }
+    .status-badge.loading { background: #feebc8; color: #744210; }
+    .status-badge.ready { background: #c6f6d5; color: #22543d; }
+
     /* Botón Guardar */
     .btn-guardar { background: #2f855a; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: background 0.2s; }
     .btn-guardar:hover { background: #276749; }
-    .btn-guardar:disabled { background: #a0aec0; cursor: not-allowed; }
 
     /* Menú Estilo Looker Studio (3 Puntos ⋮) */
     .menu-looker-container { margin-left: auto; position: relative; }
@@ -42,7 +46,6 @@
     th:hover { background: #4a5568; }
     th.highlight { background: #2b6cb0; }
     
-    /* Fila de Totales Fija en el Encabezado */
     tr.fila-totales { background: #ebf8ff; font-weight: bold; position: sticky; top: 25px; z-index: 9; border-bottom: 2px solid #3182ce; }
     tr.fila-totales td { padding: 6px 4px; border-bottom: 2px solid #3182ce; color: #1a365d; font-size: 10px; text-align: right; }
     tr.fila-totales td.texto { text-align: left; }
@@ -66,8 +69,9 @@
   <div class="header-title">
     <div>
       <h1>📊 Presupuesto Comercial 2027</h1>
-      <p class="subhead">Modifica <strong>PPTO 2027</strong> y presiona <strong>💾 Guardar en Google Sheets</strong>.</p>
+      <p class="subhead">Carga optimizada. Modifica <strong>PPTO 2027</strong> y presiona <strong>💾 Guardar</strong>.</p>
     </div>
+    <span id="status-indicator" class="status-badge loading">⚡ Cargando...</span>
   </div>
 
   <div class="panel-controles">
@@ -84,11 +88,14 @@
       <button id="btn-familia" onclick="cambiarVista('familia')">Por Familia Agrupada (Pareto %)</button>
     </div>
 
-    <button id="btn-guardar-cloud" class="btn-guardar" onclick="guardarEnGoogleSheetsCloud()">💾 Guardar en Google Sheets</button>
+    <button id="btn-guardar-cloud" class="btn-guardar" onclick="guardarLocalmente()">💾 Guardar Cambios</button>
 
     <div class="menu-looker-container">
       <button class="btn-tres-puntos" onclick="toggleMenuLooker(event)">⋮</button>
       <div id="menu-dropdown-looker" class="dropdown-menu-looker">
+        <div class="dropdown-item" onclick="recargarDesdeGoogleSheet(true)">
+          <span>🔄</span> Forzar Sincronización
+        </div>
         <div class="dropdown-item" onclick="exportarAGoogleSheets()">
           <span>📊</span> Abrir Google Sheet original
         </div>
@@ -110,7 +117,7 @@
         <tr id="fila-totales" class="fila-totales"></tr>
       </thead>
       <tbody id="cuerpo-tabla">
-        <tr><td colspan="16" style="text-align:center; padding:20px;">Cargando datos desde Google Sheets...</td></tr>
+        <tr><td colspan="16" style="text-align:center; padding:20px;">Cargando datos...</td></tr>
       </tbody>
     </table>
   </div>
@@ -118,47 +125,30 @@
   <script>
     const SPREADSHEET_ID = '1fxDlguyE0s8R4plUXabyMpWoizPrXpLBKe8qfqPOKEY';
     const GID = '1139127679';
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/TU_SCRIPT_ID_AQUI/exec';
 
     let datosOriginales = [];
     let vistaActual = 'detalle';
     let columnaOrden = 'vta_proy_26';
     let ordenAscendente = false;
 
-    function cargarDesdeGoogleSheet() {
-      const script = document.createElement('script');
-      script.src = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?gid=${GID}&tqx=responseHandler:recibirDatosGViz`;
-      script.onerror = function() {
-        document.getElementById('cuerpo-tabla').innerHTML = `
-          <tr><td colspan="16" style="color:red; text-align:center; padding:20px;">
-            ⚠️ Error de acceso a Google Sheets. Verifica los permisos de la hoja.
-          </td></tr>`;
-      };
-      document.body.appendChild(script);
+    // CARGA ULTRARRÁPIDA CON CACHÉ LOCAL
+    function iniciarCarga() {
+      const cacheGuardado = localStorage.getItem('presupuesto_cache_datos');
+      if (cacheGuardado) {
+        try {
+          datosOriginales = JSON.parse(cacheGuardado);
+          poblarFiltroEmpresas();
+          filtrarYRenderizar();
+          actualizarEstado("⚡ Listo (Caché)", "ready");
+        } catch (e) {
+          console.warn("Caché no válido, consultando remoto...");
+        }
+      }
+      recargarDesdeGoogleSheet(false);
     }
 
-    window.recibirDatosGViz = function(jsonDatos) {
-      if (jsonDatos && jsonDatos.table) {
-        datosOriginales = procesarFilasGViz(jsonDatos.table);
-        poblarFiltroEmpresas();
-        filtrarYRenderizar();
-      } else {
-        document.getElementById('cuerpo-tabla').innerHTML = '<tr><td colspan="16" style="color:red; text-align:center; padding:20px;">Error al cargar datos desde Google Sheets.</td></tr>';
-      }
-    };
+    function recargarDesdeGoogleSheet(forzado) {
+      if (forzado) actualizarEstado("🔄 Sincronizando...", "loading");
 
-    function procesarFilasGViz(tabla) {
-      const data = [];
-      const filas = tabla.rows;
-
-      for (let i = 0; i < filas.length; i++) {
-        const c = filas[i].c;
-        if (!c || c.length < 5) continue;
-
-        data.push({
-          id: i + 1,
-          id_empresa: obtenerVal(c[0]),
-          razon_social_sec: obtenerVal(c[1]),
-          familias_agrupadas: obtenerVal(c[2]),
-          nombre_familia: obtenerVal(c[3]),
-          ppto_2026: limpiarNumero(obtenerVal(
+      const script = document.createElement('script');
+      script.src = `
