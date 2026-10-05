@@ -1,100 +1,231 @@
+
 <!DOCTYPE html>
-<html lang="es"> 
-<head> 
+<html lang="es">
+<head>
   <meta charset="UTF-8">
-  <title>Mi Presupuesto 2027</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <title>Mi Presupuesto 2027 Interactivo</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background: #f4f6f8; }
-    h1 { color: #1a365d; }
-    table { width: 100%; border-collapse: collapse; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-top: 15px; }
-    th { background: #2b6cb0; color: white; padding: 10px; text-align: left; }
-    td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
-    input { width: 100px; padding: 6px; font-weight: bold; border: 1px solid #3182ce; border-radius: 4px; background: #ebf8ff; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: #f4f6f8; margin: 0; }
+    h1 { color: #1a365d; margin-bottom: 5px; }
+    .subhead { color: #4a5568; margin-bottom: 20px; }
+    .controles { display: flex; gap: 10px; margin-bottom: 15px; }
+    .btn-group { display: flex; background: #e2e8f0; border-radius: 6px; padding: 3px; }
+    .btn-group button { border: none; background: transparent; padding: 8px 16px; font-weight: bold; cursor: pointer; border-radius: 4px; color: #4a5568; }
+    .btn-group button.activo { background: #2b6cb0; color: white; }
+    .tabla-container { overflow-x: auto; background: #fff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+    th { background: #2d3748; color: white; padding: 10px; font-weight: 600; white-space: nowrap; }
+    th.highlight { background: #2b6cb0; }
+    td { padding: 8px 10px; border-bottom: 1px solid #edf2f7; white-space: nowrap; }
+    tr:hover { background-color: #f7fafc; }
+    input.editable-ppto { width: 90px; padding: 5px; font-weight: bold; border: 1px solid #3182ce; border-radius: 4px; background: #ebf8ff; text-align: right; }
     .verde { color: #2f855a; font-weight: bold; }
-    .rojo { color: #9b2c2c; font-weight: bold; }
-    .amarillo { color: #d69e2e; font-weight: bold; }
+    .rojo { color: #e53e3e; font-weight: bold; }
+    .monto { text-align: right; }
   </style>
 </head>
 <body>
 
-  <h1>📊 Sistema de Presupuesto 2027</h1>
-  <p>Edita directamente en la columna <strong>PPTO 27</strong> para calcular el porcentaje de crecimiento en tiempo real.</p>
+  <h1>📊 Presupuesto Comercial 2027 (Google Sheet Sync)</h1>
+  <p class="subhead">Datos sincronizados con Google Sheet. Edita la columna <strong>PPTO 2027</strong> para calcular las variaciones en tiempo real.</p>
 
-  <table id="tabla-ppto">
-    <thead>
-      <tr>
-        <th>Gerencia</th>
-        <th>Familia</th>
-        <th>Clasificación</th>
-        <th>VTA 25 (USD)</th>
-        <th>VTA + PROY 26 (USD)</th>
-        <th style="background-color: #3182ce;">PPTO 27 (EDITABLE)</th>
-        <th>% CREC vs 26</th>
-        <th>Estado</th>
-      </tr>
-    </thead>
-    <tbody id="cuerpo-tabla">
-      <tr><td colspan="8">Cargando datos del presupuesto...</td></tr>
-    </tbody>
-  </table>
+  <div class="controles">
+    <div class="btn-group">
+      <button id="btn-detalle" class="activo" onclick="cambiarVista('detalle')">Ver Todo (Detallado)</button>
+      <button id="btn-razon" onclick="cambiarVista('razon')">Agrupar por Razón Social</button>
+      <button id="btn-familia" onclick="cambiarVista('familia')">Agrupar por Familias Agrupadas</button>
+    </div>
+  </div>
+
+  <div class="tabla-container">
+    <table>
+      <thead>
+        <tr id="encabezado-tabla"></tr>
+      </thead>
+      <tbody id="cuerpo-tabla">
+        <tr><td colspan="12">Cargando datos desde Google Sheets...</td></tr>
+      </tbody>
+    </table>
+  </div>
 
   <script>
-    const SUPABASE_URL = 'https://bcxchsnziypkfxmdkcse.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_EeL7gvqbcXgnpUaUv-TPGw_HW1fs0NB';
+    const SPREADSHEET_ID = '1fxDlguyE0s8R4plUXabyMpWoizPrXpLBKe8qfqPOKEY';
+    const GID = '1139127679';
+    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    let datosOriginales = [];
+    let vistaActual = 'detalle';
 
-    async function cargarPresupuesto() {
-      const { data, error } = await supabase.from('presupuesto_2027').select('*');
-      if (error) {
-        console.error('Error:', error);
-        document.getElementById('cuerpo-tabla').innerHTML = `<tr><td colspan="8" style="color:red;">Error al cargar datos: ${error.message}</td></tr>`;
-        return;
+    async function cargarDesdeGoogleSheet() {
+      try {
+        const respuesta = await fetch(CSV_URL);
+        const textoCsv = await respuesta.text();
+        
+        datosOriginales = parsearCSV(textoCsv);
+        renderizarTabla();
+      } catch (error) {
+        console.error("Error al leer Google Sheet:", error);
+        document.getElementById('cuerpo-tabla').innerHTML = `<tr><td colspan="12" style="color:red; padding:20px;">Error al cargar datos desde Google Sheets. Verifica que el documento sea público.</td></tr>`;
       }
+    }
+
+    function parsearCSV(texto) {
+      const filas = texto.split('\n').map(f => f.split(',').map(c => c.replace(/^"|"$/g, '').trim()));
       
-      const tbody = document.getElementById('cuerpo-tabla');
-      tbody.innerHTML = '';
+      // Omitir fila de encabezados (índice 0)
+      const data = [];
+      for (let i = 1; i < filas.length; i++) {
+        const row = filas[i];
+        if (row.length < 5) continue;
 
-      if (!data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8">No hay datos cargados aún en Supabase. Si agregas registros, aparecerán aquí.</td></tr>';
+        data.push({
+          id: i,
+          id_empresa: row[0] || '-',
+          razon_social_sec: row[1] || '-',
+          familias_agrupadas: row[2] || '-',
+          nombre_familia: row[3] || '-',
+          ppto_2026: limpiarNumero(row[4]),
+          vta_proy_26: limpiarNumero(row[5]),
+          porc_proy: row[6] || '0%',
+          vta_25: limpiarNumero(row[7]),
+          vta_24: limpiarNumero(row[8]),
+          vta_23: limpiarNumero(row[9]),
+          ppto_2027: limpiarNumero(row[10]) || 0
+        });
+      }
+      return data;
+    }
+
+    function limpiarNumero(val) {
+      if (!val) return 0;
+      const num = parseFloat(val.replace(/[^0-9.-]+/g, ""));
+      return isNaN(num) ? 0 : num;
+    }
+
+    function cambiarVista(modo) {
+      vistaActual = modo;
+      document.querySelectorAll('.btn-group button').forEach(b => b.classList.remove('activo'));
+      if (modo === 'detalle') document.getElementById('btn-detalle').classList.add('activo');
+      if (modo === 'razon') document.getElementById('btn-razon').classList.add('activo');
+      if (modo === 'familia') document.getElementById('btn-familia').classList.add('activo');
+      renderizarTabla();
+    }
+
+    function renderizarTabla() {
+      const thead = document.getElementById('encabezado-tabla');
+      const tbody = document.getElementById('cuerpo-tabla');
+
+      if (datosOriginales.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:20px;">No se encontraron registros en la hoja.</td></tr>';
         return;
       }
 
-      data.forEach(item => {
-        const crec26 = item.vta_proy_26 > 0 
-          ? (((item.ppto_27 - item.vta_proy_26) / item.vta_proy_26) * 100).toFixed(1)
-          : 0;
+      let filasParaMostrar = [];
 
-        let estadoHtml = '';
-        if (crec26 > 5) estadoHtml = '<span class="verde">▲ Creciendo</span>';
-        else if (crec26 >= 0) estadoHtml = '<span class="amarillo">► Estable</span>';
-        else estadoHtml = '<span class="rojo">▼ Decreciendo</span>';
+      if (vistaActual === 'detalle') {
+        thead.innerHTML = `
+          <th>ID Empresa</th>
+          <th>Razón Social</th>
+          <th>Familias Agrupadas</th>
+          <th>Detalle Familia</th>
+          <th class="monto">PPTO 2026</th>
+          <th class="monto">VTA + PROY 26</th>
+          <th class="monto">VTA 25</th>
+          <th class="monto">VTA 24</th>
+          <th class="monto">VTA 23</th>
+          <th class="highlight monto">PPTO 2027</th>
+          <th class="monto">VTA 26VS27 (%)</th>
+        `;
+        filasParaMostrar = datosOriginales;
+      } else {
+        const campoClave = vistaActual === 'razon' ? 'razon_social_sec' : 'familias_agrupadas';
+        thead.innerHTML = `
+          <th>ID Empresa</th>
+          <th>${vistaActual === 'razon' ? 'Razón Social' : 'Familia Agrupada'}</th>
+          <th class="monto">PPTO 2026</th>
+          <th class="monto">VTA + PROY 26</th>
+          <th class="monto">VTA 25</th>
+          <th class="monto">VTA 24</th>
+          <th class="monto">VTA 23</th>
+          <th class="highlight monto">PPTO 2027</th>
+          <th class="monto">VTA 26VS27 (%)</th>
+        `;
+
+        const mapaAgrupado = {};
+        datosOriginales.forEach(item => {
+          const clave = item[campoClave] || 'SIN CLASIFICAR';
+          if (!mapaAgrupado[clave]) {
+            mapaAgrupado[clave] = {
+              id_empresa: item.id_empresa || '-',
+              agrupador: clave,
+              ppto_2026: 0,
+              vta_proy_26: 0,
+              vta_25: 0,
+              vta_24: 0,
+              vta_23: 0,
+              ppto_2027: 0
+            };
+          }
+          mapaAgrupado[clave].ppto_2026 += Number(item.ppto_2026 || 0);
+          mapaAgrupado[clave].vta_proy_26 += Number(item.vta_proy_26 || 0);
+          mapaAgrupado[clave].vta_25 += Number(item.vta_25 || 0);
+          mapaAgrupado[clave].vta_24 += Number(item.vta_24 || 0);
+          mapaAgrupado[clave].vta_23 += Number(item.vta_23 || 0);
+          mapaAgrupado[clave].ppto_2027 += Number(item.ppto_2027 || 0);
+        });
+
+        filasParaMostrar = Object.values(mapaAgrupado);
+      }
+
+      tbody.innerHTML = '';
+      filasParaMostrar.forEach(row => {
+        const base26 = Number(row.vta_proy_26 || 0);
+        const ppto27 = Number(row.ppto_2027 || 0);
+        const var26vs27 = base26 > 0 ? (((ppto27 - base26) / base26) * 100).toFixed(1) : 0;
 
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${item.gerencia || '-'}</td>
-          <td>${item.nombre_familia || '-'}</td>
-          <td>${item.clasificacion || '-'}</td>
-          <td>$${Number(item.vta_25 || 0).toLocaleString()}</td>
-          <td>$${Number(item.vta_proy_26 || 0).toLocaleString()}</td>
-          <td style="background-color: #ebf8ff;">
-            <input type="number" value="${item.ppto_27 || 0}" onchange="guardarPpto('${item.id}', this.value)">
-          </td>
-          <td class="${crec26 >= 0 ? 'verde' : 'rojo'}">${crec26}%</td>
-          <td>${estadoHtml}</td>
-        `;
+        if (vistaActual === 'detalle') {
+          tr.innerHTML = `
+            <td>${row.id_empresa}</td>
+            <td>${row.razon_social_sec}</td>
+            <td>${row.familias_agrupadas}</td>
+            <td>${row.nombre_familia}</td>
+            <td class="monto">$${Number(row.ppto_2026 || 0).toLocaleString()}</td>
+            <td class="monto">$${base26.toLocaleString()}</td>
+            <td class="monto">$${Number(row.vta_25 || 0).toLocaleString()}</td>
+            <td class="monto">$${Number(row.vta_24 || 0).toLocaleString()}</td>
+            <td class="monto">$${Number(row.vta_23 || 0).toLocaleString()}</td>
+            <td class="monto" style="background:#ebf8ff;">
+              <input type="number" class="editable-ppto" value="${ppto27}" onchange="actualizarPpto(${row.id}, this.value)">
+            </td>
+            <td class="monto ${var26vs27 >= 0 ? 'verde' : 'rojo'}">${var26vs27}%</td>
+          `;
+        } else {
+          tr.innerHTML = `
+            <td>${row.id_empresa}</td>
+            <td><strong>${row.agrupador}</strong></td>
+            <td class="monto">$${Number(row.ppto_2026 || 0).toLocaleString()}</td>
+            <td class="monto">$${base26.toLocaleString()}</td>
+            <td class="monto">$${Number(row.vta_25 || 0).toLocaleString()}</td>
+            <td class="monto">$${Number(row.vta_24 || 0).toLocaleString()}</td>
+            <td class="monto">$${Number(row.vta_23 || 0).toLocaleString()}</td>
+            <td class="monto" style="background:#ebf8ff; font-weight:bold;">$${ppto27.toLocaleString()}</td>
+            <td class="monto ${var26vs27 >= 0 ? 'verde' : 'rojo'}">${var26vs27}%</td>
+          `;
+        }
         tbody.appendChild(tr);
       });
     }
 
-    async function guardarPpto(id, valor) {
+    function actualizarPpto(id, valor) {
       const nuevoValor = parseFloat(valor) || 0;
-      await supabase.from('presupuesto_2027').update({ ppto_27: nuevoValor }).eq('id', id);
-      cargarPresupuesto();
+      const item = datosOriginales.find(d => d.id === id);
+      if (item) item.ppto_2027 = nuevoValor;
+
+      renderizarTabla();
     }
 
-    cargarPresupuesto();
+    cargarDesdeGoogleSheet();
   </script>
 </body>
 </html>
