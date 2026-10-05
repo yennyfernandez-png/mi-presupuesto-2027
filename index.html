@@ -691,4 +691,144 @@
           labels: labelsClientes,
           datasets: [
             { label: 'VTA 24', data: topClientes.map(function(c) { return c[1].v24; }), backgroundColor: '#cbd5e0' },
-            { label: 'VTA 25', data: topClientes.map(function(c) { return c
+            { label: 'VTA 25', data: topClientes.map(function(c) { return c[1].v25; }), backgroundColor: '#a0aec0' },
+            { label: 'VTA + PROY 26', data: topClientes.map(function(c) { return c[1].v26; }), backgroundColor: '#718096' },
+            { label: 'PPTO 2026', data: topClientes.map(function(c) { return c[1].p26; }), backgroundColor: '#805ad5' },
+            { label: 'PPTO 2027', data: topClientes.map(function(c) { return c[1].p27; }), backgroundColor: '#3182ce' }
+          ]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+      });
+
+      const mapaFam = {};
+      datos.forEach(function(d) {
+        const fam = d.familias_agrupadas || 'SIN FAMILIA';
+        if (!mapaFam[fam]) mapaFam[fam] = { v25: 0, p26: 0, p27: 0 };
+        mapaFam[fam].v25 += Number(d.vta_25 || 0);
+        mapaFam[fam].p26 += Number(d.ppto_2026 || 0);
+        mapaFam[fam].p27 += Number(d.ppto_2027 || 0);
+      });
+
+      const topFamilias = Object.entries(mapaFam).sort(function(a, b) { return b[1].p27 - a[1].p27; }).slice(0, 8);
+      const labelsFam = topFamilias.map(function(f) { return f[0]; });
+
+      if (chartFamiliasInst) chartFamiliasInst.destroy();
+      chartFamiliasInst = new Chart(document.getElementById('chartFamilias'), {
+        type: 'bar',
+        data: {
+          labels: labelsFam,
+          datasets: [
+            { label: 'VTA 25', data: topFamilias.map(function(f) { return f[1].v25; }), backgroundColor: '#a0aec0' },
+            { label: 'PPTO 2026', data: topFamilias.map(function(f) { return f[1].p26; }), backgroundColor: '#805ad5' },
+            { label: 'PPTO 2027', data: topFamilias.map(function(f) { return f[1].p27; }), backgroundColor: '#38a169' }
+          ]
+        },
+        options: { indexAxis: 'y', responsive: true, plugins: { legend: { position: 'bottom' } } }
+      });
+
+      const sumV23 = datos.reduce(function(s, d) { return s + (d.vta_23 || 0); }, 0);
+      const sumV24 = datos.reduce(function(s, d) { return s + (d.vta_24 || 0); }, 0);
+      const sumV25 = datos.reduce(function(s, d) { return s + (d.vta_25 || 0); }, 0);
+      const sumV26 = datos.reduce(function(s, d) { return s + (d.vta_proy_26 || 0); }, 0);
+      const sumP26 = datos.reduce(function(s, d) { return s + (d.ppto_2026 || 0); }, 0);
+      const sumP27 = datos.reduce(function(s, d) { return s + (d.ppto_2027 || 0); }, 0);
+
+      if (chartHistoricoInst) chartHistoricoInst.destroy();
+      chartHistoricoInst = new Chart(document.getElementById('chartHistorico'), {
+        type: 'line',
+        data: {
+          labels: ['VTA 23', 'VTA 24', 'VTA 25', 'VTA + PROY 26', 'PPTO 2026', 'PPTO 2027'],
+          datasets: [
+            {
+              label: 'Ventas Reales / Proyectadas ($)',
+              data: [sumV23, sumV24, sumV25, sumV26, null, null],
+              borderColor: '#2b6cb0',
+              backgroundColor: 'rgba(49, 130, 206, 0.15)',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 6
+            },
+            {
+              label: 'Metas Presupuestadas ($)',
+              data: [null, null, null, sumV26, sumP26, sumP27],
+              borderColor: '#38a169',
+              borderDash: [6, 6],
+              backgroundColor: 'transparent',
+              pointRadius: 8,
+              pointStyle: 'rectRot'
+            }
+          ]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+      });
+    }
+
+    function exportarAGoogleSheets() {
+      cerrarMenuLooker();
+      window.open('https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID + '/edit#gid=' + GID, '_blank');
+    }
+
+    function descargarCSV() {
+      cerrarMenuLooker();
+      const datosExportar = obtenerDatosFiltrados();
+
+      let csvContent = "\uFEFF";
+      csvContent += "Id_empresa,razon_social_sec,Familias Agrupadas,nombre_familia,PPTO 2026,VTA + PROY 26,VTA 25,VTA 24,VTA 23,PPTO 2027,VTA 26VS27,VTA 26VS25,VTA 26VS24,VTA 26VS23\n";
+
+      datosExportar.forEach(function(d) {
+        const v26 = d.vta_proy_26 || 0;
+        const p27 = d.ppto_2027 || 0;
+        const var27 = calcVar(v26, p27);
+        const var25 = calcVar(v26, d.vta_25);
+        const var24 = calcVar(v26, d.vta_24);
+        const var23 = calcVar(v26, d.vta_23);
+
+        const fila = [
+          '"' + d.id_empresa + '"',
+          '"' + d.razon_social_sec + '"',
+          '"' + d.familias_agrupadas + '"',
+          '"' + d.nombre_familia + '"',
+          d.ppto_2026,
+          v26,
+          d.vta_25,
+          d.vta_24,
+          d.vta_23,
+          p27,
+          '"' + var27 + '%"',
+          '"' + var25 + '%"',
+          '"' + var24 + '%"',
+          '"' + var23 + '%"'
+        ];
+        csvContent += fila.join(",") + "\n";
+      });
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", 'Presupuesto_2027.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function copiarAlPortapapeles() {
+      cerrarMenuLooker();
+      const datosExportar = obtenerDatosFiltrados();
+
+      let textoClip = "Id_empresa\trazon_social_sec\tFamilias Agrupadas\tnombre_familia\tPPTO 2026\tVTA + PROY 26\tVTA 25\tVTA 24\tVTA 23\tPPTO 2027\n";
+
+      datosExportar.forEach(function(d) {
+        textoClip += d.id_empresa + '\t' + d.razon_social_sec + '\t' + d.familias_agrupadas + '\t' + d.nombre_familia + '\t' + d.ppto_2026 + '\t' + d.vta_proy_26 + '\t' + d.vta_25 + '\t' + d.vta_24 + '\t' + d.vta_23 + '\t' + d.ppto_2027 + '\n';
+      });
+
+      navigator.clipboard.writeText(textoClip).then(function() {
+        alert("¡Datos copiados al portapapeles!");
+      });
+    }
+
+    // INICIAR APLICACIÓN SIN DEPENDENCIAS EXTERNAS DE GOOGLE
+    iniciarAplicacion();
+  </script>
+</body>
+</html>
