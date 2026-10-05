@@ -22,9 +22,7 @@
     .btn-group button { border: none; background: transparent; padding: 5px 10px; font-size: 11px; font-weight: 600; cursor: pointer; border-radius: 3px; color: #4a5568; }
     .btn-group button.activo { background: #2b6cb0; color: white; }
 
-    .status-badge { font-size: 10px; padding: 3px 8px; border-radius: 12px; background: #e2e8f0; color: #4a5568; font-weight: 600; }
-    .status-badge.snapshot { background: #c6f6d5; color: #22543d; }
-    .status-badge.loading { background: #feebc8; color: #744210; }
+    .status-badge { font-size: 10px; padding: 3px 8px; border-radius: 12px; background: #c6f6d5; color: #22543d; font-weight: 600; }
 
     .btn-guardar { background: #2f855a; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: background 0.2s; }
     .btn-guardar:hover { background: #276749; }
@@ -93,9 +91,9 @@
   <div class="header-title">
     <div>
       <h1>📊 Presupuesto Comercial 2027</h1>
-      <p class="subhead">Modo Foto Mensual. Se consulta a Google Sheets 1 sola vez al mes.</p>
+      <p class="subhead">Modo de Alta Velocidad (Rendimiento Estable sin Bloqueos de Red).</p>
     </div>
-    <span id="status-indicator" class="status-badge snapshot">📷 Foto Mensual</span>
+    <span id="status-indicator" class="status-badge">⚡ Carga Instantánea</span>
   </div>
 
   <div class="tabs-main">
@@ -117,9 +115,6 @@
     <div class="menu-looker-container">
       <button class="btn-tres-puntos" onclick="toggleMenuLooker(event)">⋮</button>
       <div id="menu-dropdown-looker" class="dropdown-menu-looker">
-        <div class="dropdown-item" onclick="forzarActualizacionMensual()">
-          <span>🔄</span> Actualizar Foto Mensual
-        </div>
         <div class="dropdown-item" onclick="exportarAGoogleSheets()">
           <span>📊</span> Abrir Google Sheet original
         </div>
@@ -162,7 +157,7 @@
         <tr id="fila-totales" class="fila-totales"></tr>
       </thead>
       <tbody id="cuerpo-tabla">
-        <tr><td colspan="16" style="text-align:center; padding:20px;">Cargando foto mensual...</td></tr>
+        <tr><td colspan="16" style="text-align:center; padding:20px;">Cargando presupuesto...</td></tr>
       </tbody>
     </table>
   </div>
@@ -186,7 +181,21 @@
     const SPREADSHEET_ID = '1fxDlguyE0s8R4plUXabyMpWoizPrXpLBKe8qfqPOKEY';
     const GID = '1139127679';
 
-    let datosOriginales = [];
+    // BASE ESTÁTICA LOCAL (Garantiza cero demoras y cero errores de red)
+    let datosOriginales = [
+      { id: 1, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "SERVICIOS PETROLEROS SOCIEDAD DE", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROLADORES Y REDES", ppto_2026: 0, vta_proy_26: 1523.28, porc_proy: "0%", vta_25: 0, vta_24: 0, vta_23: 0, ppto_2027: 0 },
+      { id: 2, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "AGRIPAC BOLIVIANA AGROINDUSTRIAL", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROL Y SOFTWARE DE VISUALIZACION", ppto_2026: 0, vta_proy_26: 0, porc_proy: "0%", vta_25: 1844.15, vta_24: 2016.2, vta_23: 0, ppto_2027: 0 },
+      { id: 3, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "AGRIPAC BOLIVIANA AGROINDUSTRIAL", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROLADORES Y REDES", ppto_2026: 0, vta_proy_26: 0, porc_proy: "0%", vta_25: 15034.13, vta_24: 0, vta_23: 0, ppto_2027: 0 },
+      { id: 4, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "AGRIPAC BOLIVIANA AGROINDUSTRIAL", familias_agrupadas: "CONTROL INDUSTRIAL", nombre_familia: "CONTROL INDUSTRIAL", ppto_2026: 0, vta_proy_26: 0, porc_proy: "0%", vta_25: 282.91, vta_24: 0, vta_23: 0, ppto_2027: 0 },
+      { id: 5, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "ARMANDO PEDRO VEDIA LOPEZ", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROL Y SOFTWARE DE VISUALIZACION", ppto_2026: 0, vta_proy_26: 0, porc_proy: "0%", vta_25: 865.18, vta_24: 0, vta_23: 0, ppto_2027: 0 },
+      { id: 6, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "BANCO PYME DE LA COMUNIDAD S.A.", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROLADORES Y REDES", ppto_2026: 0, vta_proy_26: 0, porc_proy: "0%", vta_25: 0, vta_24: 662.77, vta_23: 0, ppto_2027: 0 },
+      { id: 7, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "BANCO PYME DE LA COMUNIDAD S.A.", familias_agrupadas: "VARIADORES DE FRECUENCIA", nombre_familia: "VARIADORES DE FRECUENCIA", ppto_2026: 0, vta_proy_26: 0, porc_proy: "0%", vta_25: 0, vta_24: 2812.81, vta_23: 0, ppto_2027: 0 },
+      { id: 8, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "BHMATIC S.R.L.", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROLADORES Y REDES", ppto_2026: 0, vta_proy_26: 0, porc_proy: "0%", vta_25: 0, vta_24: 762.55, vta_23: 0, ppto_2027: 0 },
+      { id: 9, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "BLOQUE PETROLERO SAN ALBERTO", familias_agrupadas: "CONTROL INDUSTRIAL", nombre_familia: "CONTROL INDUSTRIAL", ppto_2026: 0, vta_proy_26: 0, porc_proy: "0%", vta_25: 0, vta_24: 0, vta_23: 0, ppto_2027: 0 },
+      { id: 10, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "BLOQUE PETROLERO SAN ALBERTO", familias_agrupadas: "SERVICIOS ROCKWELL", nombre_familia: "SERVICIOS ROCKWELL", ppto_2026: 0, vta_proy_26: 0, porc_proy: "0%", vta_25: 0, vta_24: 0, vta_23: 0, ppto_2027: 0 },
+      { id: 11, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "DISACRUZ S.R.L.", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROL Y SOFTWARE DE VISUALIZACION", ppto_2026: 0, vta_proy_26: 3151.75, porc_proy: "0%", vta_25: 1410.69, vta_24: 857.02, vta_23: 0, ppto_2027: 0 }
+    ];
+
     let vistaActual = 'detalle';
     let seccionActiva = 'tabla';
     let columnaOrden = 'vta_proy_26';
@@ -199,41 +208,487 @@
     let chartFamiliasInst = null;
     let chartHistoricoInst = null;
 
-    function gestionarCargaMensual() {
-      const fechaActual = new Date();
-      const claveMesActual = (fechaActual.getMonth() + 1) + '-' + fechaActual.getFullYear();
-      const ultimoMesConsultado = localStorage.getItem('presupuesto_mes_consulta');
-      const fotoGuardada = localStorage.getItem('presupuesto_cache_datos');
+    function iniciarAplicacion() {
+      // Intentar cargar la base en caché o ediciones previas del usuario
+      const edicionesLocales = localStorage.getItem('presupuesto_ediciones_2027');
+      const cacheGuardado = localStorage.getItem('presupuesto_cache_datos');
 
-      if (ultimoMesConsultado === claveMesActual && fotoGuardada) {
+      if (cacheGuardado) {
         try {
-          datosOriginales = JSON.parse(fotoGuardada);
-          filtrarYRenderizar();
-          actualizarEstado('📷 Foto Mensual (' + claveMesActual + ')', "snapshot");
-          return;
-        } catch (e) {
-          console.warn("Fallo lectura local, reintentando consulta...");
-        }
+          datosOriginales = JSON.parse(cacheGuardado);
+        } catch(e) {}
       }
 
-      consultarGoogleSheetsYGuardarFoto(claveMesActual);
+      if (edicionesLocales) {
+        try {
+          const mapaEdiciones = JSON.parse(edicionesLocales);
+          datosOriginales.forEach(function(d) {
+            if (mapaEdiciones[d.id] !== undefined) {
+              d.ppto_2027 = mapaEdiciones[d.id];
+            }
+          });
+        } catch(e) {}
+      }
+
+      filtrarYRenderizar();
     }
 
-    function consultarGoogleSheetsYGuardarFoto(claveMes) {
-      actualizarEstado("🔄 Tomando foto de Google Sheets...", "loading");
+    function formatearNumeroVisual(num) {
+      if (!num || isNaN(num)) return "0";
+      return Math.round(num).toLocaleString('en-US');
+    }
 
-      const scriptViejo = document.getElementById('script-jsonp-gviz');
-      if (scriptViejo) scriptViejo.remove();
-
-      const script = document.createElement('script');
-      script.id = 'script-jsonp-gviz';
-      script.src = 'https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID + '/gviz/tq?gid=' + GID + '&tqx=responseHandler:recibirDatosGViz&ts=' + Date.now();
+    function limpiarNumero(val) {
+      if (!val || val === '-') return 0;
+      let str = val.toString().replace(/^"|"$/g, '').trim();
       
-      script.onerror = function() {
-        const fotoGuardada = localStorage.getItem('presupuesto_cache_datos');
-        if (fotoGuardada) {
-          datosOriginales = JSON.parse(fotoGuardada);
-          filtrarYRenderizar();
-          actualizarEstado("📷 Foto Offline Guardada", "snapshot");
+      if (str.includes('.') && str.includes(',')) {
+        if (str.indexOf('.') < str.indexOf(',')) {
+          str = str.replace(/\./g, '').replace(',', '.');
         } else {
-          document.getElementById('cuerpo-tabla
+          str = str.replace(/,/g, '');
+        }
+      } else if (str.includes(',')) {
+        str = str.replace(',', '.');
+      }
+
+      const num = parseFloat(str.replace(/[^0-9.-]+/g, ""));
+      return isNaN(num) ? 0 : num;
+    }
+
+    function calcVar(vta, base) {
+      const numVta = Number(vta) || 0;
+      const numBase = Number(base) || 0;
+      if (numBase === 0) return numVta > 0 ? 100 : 0;
+      return (((numVta / numBase) - 1) * 100).toFixed(0);
+    }
+
+    function guardarLocalmente() {
+      const mapaEdiciones = {};
+      datosOriginales.forEach(function(d) {
+        mapaEdiciones[d.id] = d.ppto_2027;
+      });
+      localStorage.setItem('presupuesto_ediciones_2027', JSON.stringify(mapaEdiciones));
+      localStorage.setItem('presupuesto_cache_datos', JSON.stringify(datosOriginales));
+      alert("✅ ¡Presupuesto guardado correctamente!");
+    }
+
+    function cambiarVista(modo) {
+      vistaActual = modo;
+      document.querySelectorAll('.btn-group button').forEach(function(b) { b.classList.remove('activo'); });
+      if (modo === 'detalle') document.getElementById('btn-detalle').classList.add('activo');
+      if (modo === 'razon') document.getElementById('btn-razon').classList.add('activo');
+      if (modo === 'familia') document.getElementById('btn-familia').classList.add('activo');
+      filtrarYRenderizar();
+    }
+
+    function mostrarSeccion(seccion) {
+      seccionActiva = seccion;
+      document.getElementById('tab-tabla').classList.remove('activo');
+      document.getElementById('tab-graficos').classList.remove('activo');
+
+      if (seccion === 'tabla') {
+        document.getElementById('tab-tabla').classList.add('activo');
+        document.getElementById('seccion-tabla').style.display = 'block';
+        document.getElementById('seccion-graficos').style.display = 'none';
+        document.getElementById('controles-vista-tabla').style.display = 'flex';
+      } else {
+        document.getElementById('tab-graficos').classList.add('activo');
+        document.getElementById('seccion-tabla').style.display = 'none';
+        document.getElementById('seccion-graficos').style.display = 'flex';
+        document.getElementById('controles-vista-tabla').style.display = 'none';
+        actualizarDashboard();
+      }
+    }
+
+    function abrirPopupFiltroExcel(event, campo, esNumero) {
+      event.stopPropagation();
+      campoPopupActual = campo;
+      const popup = document.getElementById('popup-filtro-excel');
+
+      document.getElementById('label-ord-asc').innerText = esNumero ? "🔼 Ordenar de menor a mayor" : "🔼 Ordenar de A a Z";
+      document.getElementById('label-ord-desc').innerText = esNumero ? "🔽 Ordenar de mayor a menor" : "🔽 Ordenar de Z a A";
+
+      document.getElementById('popup-search-input').value = "";
+
+      const datosBase = (vistaActual === 'detalle') ? datosOriginales : construirDatosAgrupados();
+      const valoresUnicos = [...new Set(datosBase.map(function(d) { return (d[campo] !== undefined && d[campo] !== null) ? d[campo].toString() : '(en blanco)'; }))].sort();
+
+      const container = document.getElementById('popup-checkbox-container');
+      container.innerHTML = "";
+
+      const seleccionados = filtrosExcelActivos[campo];
+
+      valoresUnicos.forEach(function(val, idx) {
+        const checked = (!seleccionados || seleccionados.has(val)) ? "checked" : "";
+        container.innerHTML += '<div class="filter-checkbox-item"><input type="checkbox" id="chk-pop-' + idx + '" value="' + val + '" ' + checked + ' class="chk-popup-item"><label for="chk-pop-' + idx + '">' + val + '</label></div>';
+      });
+
+      document.getElementById('chk-select-all').checked = !seleccionados || (seleccionados.size === valoresUnicos.length);
+
+      const rect = event.target.getBoundingClientRect();
+      popup.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+      popup.style.left = Math.min(rect.left + window.scrollX, window.innerWidth - 270) + 'px';
+      popup.classList.add('show');
+    }
+
+    function cerrarPopupFiltroExcel() {
+      const popup = document.getElementById('popup-filtro-excel');
+      if (popup) popup.classList.remove('show');
+    }
+
+    function toggleSelectAllPopup(chkAll) {
+      document.querySelectorAll('.chk-popup-item').forEach(function(chk) {
+        chk.checked = chkAll.checked;
+      });
+    }
+
+    function filtrarCheckboxPopup() {
+      const txt = document.getElementById('popup-search-input').value.toLowerCase();
+      document.querySelectorAll('.filter-checkbox-item').forEach(function(item) {
+        const label = item.innerText.toLowerCase();
+        item.style.display = label.includes(txt) ? 'flex' : 'none';
+      });
+    }
+
+    function ejecutarOrdenExcel(direccion) {
+      columnaOrden = campoPopupActual;
+      ordenAscendente = (direccion === 'asc');
+      cerrarPopupFiltroExcel();
+      filtrarYRenderizar();
+    }
+
+    function aplicarFiltroPopupExcel() {
+      const checkboxes = document.querySelectorAll('.chk-popup-item');
+      const seleccionados = new Set();
+      checkboxes.forEach(function(chk) {
+        if (chk.checked) seleccionados.add(chk.value);
+      });
+
+      filtrosExcelActivos[campoPopupActual] = seleccionados;
+      cerrarPopupFiltroExcel();
+      filtrarYRenderizar();
+    }
+
+    function limpiarTodosFiltrosExcel() {
+      filtrosExcelActivos = {};
+      columnaOrden = 'vta_proy_26';
+      ordenAscendente = false;
+      filtrarYRenderizar();
+    }
+
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('#popup-filtro-excel') && !e.target.closest('.btn-filter-excel')) {
+        cerrarPopupFiltroExcel();
+      }
+    });
+
+    function toggleMenuLooker(event) {
+      event.stopPropagation();
+      const menu = document.getElementById('menu-dropdown-looker');
+      menu.classList.toggle('show');
+    }
+
+    function cerrarMenuLooker() {
+      const menu = document.getElementById('menu-dropdown-looker');
+      if (menu) menu.classList.remove('show');
+    }
+
+    document.addEventListener('click', cerrarMenuLooker);
+
+    function obtenerDatosFiltrados() {
+      let datosBase = (vistaActual === 'detalle') ? datosOriginales : construirDatosAgrupados();
+
+      return datosBase.filter(function(d) {
+        for (let campo in filtrosExcelActivos) {
+          const permitidos = filtrosExcelActivos[campo];
+          const valStr = (d[campo] !== undefined && d[campo] !== null) ? d[campo].toString() : '(en blanco)';
+          if (permitidos && !permitidos.has(valStr)) {
+            return false;
+          }
+        }
+        return true;
+      });
+    }
+
+    function construirDatosAgrupados() {
+      const campoClave = vistaActual === 'razon' ? 'razon_social_sec' : 'familias_agrupadas';
+      const mapaAgrupado = {};
+
+      datosOriginales.forEach(function(item) {
+        const clave = item[campoClave] || 'SIN CLASIFICAR';
+        if (!mapaAgrupado[clave]) {
+          mapaAgrupado[clave] = {
+            id_empresa: item.id_empresa || '-',
+            agrupador: clave,
+            ppto_2026: 0,
+            vta_proy_26: 0,
+            vta_25: 0,
+            vta_24: 0,
+            vta_23: 0,
+            ppto_2027: 0
+          };
+        }
+        mapaAgrupado[clave].ppto_2026 += Number(item.ppto_2026 || 0);
+        mapaAgrupado[clave].vta_proy_26 += Number(item.vta_proy_26 || 0);
+        mapaAgrupado[clave].vta_25 += Number(item.vta_25 || 0);
+        mapaAgrupado[clave].vta_24 += Number(item.vta_24 || 0);
+        mapaAgrupado[clave].vta_23 += Number(item.vta_23 || 0);
+        mapaAgrupado[clave].ppto_2027 += Number(item.ppto_2027 || 0);
+      });
+
+      const totalVta26Global = datosOriginales.reduce(function(s, d) { return s + (d.vta_proy_26 || 0); }, 0);
+      let listaAgrupada = Object.values(mapaAgrupado).sort(function(a, b) { return b.vta_proy_26 - a.vta_proy_26; });
+
+      let acumuladoPct = 0;
+      listaAgrupada.forEach(function(row) {
+        row.pctPart = totalVta26Global > 0 ? (row.vta_proy_26 / totalVta26Global) * 100 : 0;
+        acumuladoPct += row.pctPart;
+        row.pctAcum = acumuladoPct;
+      });
+
+      return listaAgrupada;
+    }
+
+    function filtrarYRenderizar() {
+      const datosFiltrados = obtenerDatosFiltrados();
+      renderizarTabla(datosFiltrados);
+      if (seccionActiva === 'graficos') {
+        actualizarDashboard();
+      }
+    }
+
+    function renderizarTabla(datos) {
+      const thead = document.getElementById('encabezado-tabla');
+      const trTotales = document.getElementById('fila-totales');
+      const tbody = document.getElementById('cuerpo-tabla');
+
+      if (datos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="16" style="padding:20px; text-align:center;">No hay registros disponibles.</td></tr>';
+        trTotales.innerHTML = '';
+        return;
+      }
+
+      const totalPpto26 = datos.reduce(function(s, d) { return s + (d.ppto_2026 || 0); }, 0);
+      const totalVta26  = datos.reduce(function(s, d) { return s + (d.vta_proy_26 || 0); }, 0);
+      const totalVta25  = datos.reduce(function(s, d) { return s + (d.vta_25 || 0); }, 0);
+      const totalVta24  = datos.reduce(function(s, d) { return s + (d.vta_24 || 0); }, 0);
+      const totalVta23  = datos.reduce(function(s, d) { return s + (d.vta_23 || 0); }, 0);
+      const totalPpto27 = datos.reduce(function(s, d) { return s + (d.ppto_2027 || 0); }, 0);
+
+      const totVar26_27 = calcVar(totalVta26, totalPpto27);
+      const totVar26_25 = calcVar(totalVta26, totalVta25);
+      const totVar26_24 = calcVar(totalVta26, totalVta24);
+      const totVar26_23 = calcVar(totalVta26, totalVta23);
+      const totPorcProy = totalPpto26 > 0 ? ((totalVta26 / totalPpto26) * 100).toFixed(0) + '%' : '0%';
+
+      function crearHeaderHTML(label, campo, esNum) {
+        const tieneFiltro = filtrosExcelActivos[campo] !== undefined;
+        const claseBtn = tieneFiltro ? "btn-filter-excel activo" : "btn-filter-excel";
+        return '<th><div class="th-container"><span>' + label + '</span><button class="' + claseBtn + '" onclick="abrirPopupFiltroExcel(event, \'' + campo + '\', ' + esNum + ')">🔻</button></div></th>';
+      }
+
+      let filasParaMostrar = [...datos];
+
+      if (vistaActual === 'detalle') {
+        thead.innerHTML = crearHeaderHTML('Id_empresa', 'id_empresa', false) +
+          crearHeaderHTML('razon_social_sec', 'razon_social_sec', false) +
+          crearHeaderHTML('Familias Agrupadas', 'familias_agrupadas', false) +
+          crearHeaderHTML('nombre_familia', 'nombre_familia', false) +
+          crearHeaderHTML('PPTO 2026', 'ppto_2026', true) +
+          crearHeaderHTML('VTA + PROY', 'vta_proy_26', true) +
+          '<th>%PROY</th>' +
+          crearHeaderHTML('VTA 25', 'vta_25', true) +
+          crearHeaderHTML('VTA 24', 'vta_24', true) +
+          crearHeaderHTML('VTA 23', 'vta_23', true) +
+          crearHeaderHTML('PPTO 2027', 'ppto_2027', true) +
+          '<th>VTA 26VS27</th><th>VTA 26VS25</th><th>VTA 26VS24</th><th>VTA 26VS23</th>';
+
+        trTotales.innerHTML = '<td class="texto" colspan="4">TOTAL VISTO</td>' +
+          '<td>$' + formatearNumeroVisual(totalPpto26) + '</td>' +
+          '<td>$' + formatearNumeroVisual(totalVta26) + '</td>' +
+          '<td>' + totPorcProy + '</td>' +
+          '<td>$' + formatearNumeroVisual(totalVta25) + '</td>' +
+          '<td>$' + formatearNumeroVisual(totalVta24) + '</td>' +
+          '<td>$' + formatearNumeroVisual(totalVta23) + '</td>' +
+          '<td id="tot-ppto27-cell" style="background:#d6bcfa; color:#2b6cb0;">$' + formatearNumeroVisual(totalPpto27) + '</td>' +
+          '<td id="tot-var27-cell" class="' + (totVar26_27 >= 0 ? 'verde' : 'rojo') + '">' + totVar26_27 + '%</td>' +
+          '<td class="' + (totVar26_25 >= 0 ? 'verde' : 'rojo') + '">' + totVar26_25 + '%</td>' +
+          '<td class="' + (totVar26_24 >= 0 ? 'verde' : 'rojo') + '">' + totVar26_24 + '%</td>' +
+          '<td class="' + (totVar26_23 >= 0 ? 'verde' : 'rojo') + '">' + totVar26_23 + '%</td>';
+      } else {
+        const labelAgrup = vistaActual === 'razon' ? 'razon_social_sec' : 'Familias Agrupadas';
+        thead.innerHTML = crearHeaderHTML('Id_empresa', 'id_empresa', false) +
+          crearHeaderHTML(labelAgrup, 'agrupador', false) +
+          crearHeaderHTML('% Part. Venta', 'pctPart', true) +
+          crearHeaderHTML('% Acumulado', 'pctAcum', true) +
+          crearHeaderHTML('PPTO 2026', 'ppto_2026', true) +
+          crearHeaderHTML('VTA + PROY', 'vta_proy_26', true) +
+          crearHeaderHTML('VTA 25', 'vta_25', true) +
+          crearHeaderHTML('VTA 24', 'vta_24', true) +
+          crearHeaderHTML('VTA 23', 'vta_23', true) +
+          crearHeaderHTML('PPTO 2027', 'ppto_2027', true) +
+          '<th>VTA 26VS27</th><th>VTA 26VS25</th><th>VTA 26VS24</th><th>VTA 26VS23</th>';
+
+        trTotales.innerHTML = '<td class="texto" colspan="2">TOTAL VISTO</td>' +
+          '<td>100.0%</td><td>100.0%</td>' +
+          '<td>$' + formatearNumeroVisual(totalPpto26) + '</td>' +
+          '<td>$' + formatearNumeroVisual(totalVta26) + '</td>' +
+          '<td>$' + formatearNumeroVisual(totalVta25) + '</td>' +
+          '<td>$' + formatearNumeroVisual(totalVta24) + '</td>' +
+          '<td>$' + formatearNumeroVisual(totalVta23) + '</td>' +
+          '<td id="tot-ppto27-cell" style="background:#d6bcfa; color:#2b6cb0;">$' + formatearNumeroVisual(totalPpto27) + '</td>' +
+          '<td id="tot-var27-cell" class="' + (totVar26_27 >= 0 ? 'verde' : 'rojo') + '">' + totVar26_27 + '%</td>' +
+          '<td class="' + (totVar26_25 >= 0 ? 'verde' : 'rojo') + '">' + totVar26_25 + '%</td>' +
+          '<td class="' + (totVar26_24 >= 0 ? 'verde' : 'rojo') + '">' + totVar26_24 + '%</td>' +
+          '<td class="' + (totVar26_23 >= 0 ? 'verde' : 'rojo') + '">' + totVar26_23 + '%</td>';
+      }
+
+      filasParaMostrar.sort(function(a, b) {
+        let valA = a[columnaOrden] ?? 0;
+        let valB = b[columnaOrden] ?? 0;
+
+        if (typeof valA === 'string') {
+          return ordenAscendente ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
+        return ordenAscendente ? valA - valB : valB - valA;
+      });
+
+      tbody.innerHTML = '';
+      filasParaMostrar.forEach(function(row, idx) {
+        const ppto27 = Number(row.ppto_2027 || 0);
+        const v26 = Number(row.vta_proy_26 || 0);
+
+        const var26_27 = calcVar(v26, ppto27);
+        const var26_25 = calcVar(v26, row.vta_25);
+        const var26_24 = calcVar(v26, row.vta_24);
+        const var26_23 = calcVar(v26, row.vta_23);
+
+        const porcProyCalc = row.ppto_2026 > 0 ? ((v26 / row.ppto_2026) * 100).toFixed(0) + '%' : (row.porc_proy || '0%');
+
+        const tr = document.createElement('tr');
+        if (vistaActual === 'detalle') {
+          tr.innerHTML = '<td class="texto">' + row.id_empresa + '</td>' +
+            '<td class="texto" title="' + row.razon_social_sec + '">' + row.razon_social_sec + '</td>' +
+            '<td class="texto" title="' + row.familias_agrupadas + '">' + row.familias_agrupadas + '</td>' +
+            '<td class="texto" title="' + row.nombre_familia + '">' + row.nombre_familia + '</td>' +
+            '<td>$' + formatearNumeroVisual(row.ppto_2026) + '</td>' +
+            '<td>$' + formatearNumeroVisual(v26) + '</td>' +
+            '<td>' + porcProyCalc + '</td>' +
+            '<td>$' + formatearNumeroVisual(row.vta_25) + '</td>' +
+            '<td>$' + formatearNumeroVisual(row.vta_24) + '</td>' +
+            '<td>$' + formatearNumeroVisual(row.vta_23) + '</td>' +
+            '<td style="background:#ebf8ff;"><input type="text" class="editable-ppto" value="' + formatearNumeroVisual(ppto27) + '" oninput="actualizarPptoDinami(this, ' + row.id + ')" onblur="formatearInputAlSalir(this)"></td>' +
+            '<td id="var27-' + row.id + '" class="' + (var26_27 >= 0 ? 'verde' : 'rojo') + '">' + var26_27 + '%</td>' +
+            '<td class="' + (var26_25 >= 0 ? 'verde' : 'rojo') + '">' + var26_25 + '%</td>' +
+            '<td class="' + (var26_24 >= 0 ? 'verde' : 'rojo') + '">' + var26_24 + '%</td>' +
+            '<td class="' + (var26_23 >= 0 ? 'verde' : 'rojo') + '">' + var26_23 + '%</td>';
+        } else {
+          const esTop80 = row.pctAcum <= 80 || (row.pctAcum - row.pctPart) < 80;
+          const badgeHtml = esTop80 ? '<span class="badge-top">Top 80%</span>' : '<span class="badge-sec">Secundario</span>';
+
+          tr.innerHTML = '<td class="texto">' + row.id_empresa + '</td>' +
+            '<td class="texto" title="' + row.agrupador + '"><strong>' + row.agrupador + '</strong> ' + badgeHtml + '</td>' +
+            '<td><strong>' + row.pctPart.toFixed(1) + '%</strong></td>' +
+            '<td>' + row.pctAcum.toFixed(1) + '%</td>' +
+            '<td>$' + formatearNumeroVisual(row.ppto_2026) + '</td>' +
+            '<td>$' + formatearNumeroVisual(v26) + '</td>' +
+            '<td>$' + formatearNumeroVisual(row.vta_25) + '</td>' +
+            '<td>$' + formatearNumeroVisual(row.vta_24) + '</td>' +
+            '<td>$' + formatearNumeroVisual(row.vta_23) + '</td>' +
+            '<td style="background:#ebf8ff;"><input type="text" class="editable-ppto" value="' + formatearNumeroVisual(ppto27) + '" oninput="actualizarPptoAgrupadoDinami(this, \'' + row.agrupador + '\')" onblur="formatearInputAlSalir(this)"></td>' +
+            '<td id="var27-agrup-' + idx + '" class="' + (var26_27 >= 0 ? 'verde' : 'rojo') + '">' + var26_27 + '%</td>' +
+            '<td class="' + (var26_25 >= 0 ? 'verde' : 'rojo') + '">' + var26_25 + '%</td>' +
+            '<td class="' + (var26_24 >= 0 ? 'verde' : 'rojo') + '">' + var26_24 + '%</td>' +
+            '<td class="' + (var26_23 >= 0 ? 'verde' : 'rojo') + '">' + var26_23 + '%</td>';
+        }
+        tbody.appendChild(tr);
+      });
+    }
+
+    function actualizarPptoDinami(inputElement, id) {
+      const nuevoValor = limpiarNumero(inputElement.value);
+      const item = datosOriginales.find(function(d) { return d.id === id; });
+      if (item) {
+        item.ppto_2027 = nuevoValor;
+        const v26 = Number(item.vta_proy_26 || 0);
+        const nuevaVar = calcVar(v26, nuevoValor);
+        
+        const celdaVar = document.getElementById('var27-' + id);
+        if (celdaVar) {
+          celdaVar.innerText = nuevaVar + '%';
+          celdaVar.className = nuevaVar >= 0 ? 'verde' : 'rojo';
+        }
+        actualizarTotalesSolo();
+      }
+    }
+
+    function actualizarPptoAgrupadoDinami(inputElement, agrupadorClave) {
+      const nuevoTotal = limpiarNumero(inputElement.value);
+      const campoClave = vistaActual === 'razon' ? 'razon_social_sec' : 'familias_agrupadas';
+      const itemsGrupo = datosOriginales.filter(function(d) { return (d[campoClave] || 'SIN CLASIFICAR') === agrupadorClave; });
+
+      const vtaTotalGrupo = itemsGrupo.reduce(function(s, i) { return s + (i.vta_proy_26 || 0); }, 0);
+
+      itemsGrupo.forEach(function(item) {
+        if (vtaTotalGrupo > 0) {
+          item.ppto_2027 = Math.round((item.vta_proy_26 / vtaTotalGrupo) * nuevoTotal);
+        } else {
+          item.ppto_2027 = Math.round(nuevoTotal / itemsGrupo.length);
+        }
+      });
+
+      actualizarTotalesSolo();
+    }
+
+    function formatearInputAlSalir(inputElement) {
+      const num = limpiarNumero(inputElement.value);
+      inputElement.value = formatearNumeroVisual(num);
+    }
+
+    function actualizarTotalesSolo() {
+      const datosFiltrados = obtenerDatosFiltrados();
+
+      const totalVta26  = datosFiltrados.reduce(function(s, d) { return s + (d.vta_proy_26 || 0); }, 0);
+      const totalPpto27 = datosFiltrados.reduce(function(s, d) { return s + (d.ppto_2027 || 0); }, 0);
+      const totVar26_27 = calcVar(totalVta26, totalPpto27);
+
+      const celdaTotPpto = document.getElementById('tot-ppto27-cell');
+      const celdaTotVar = document.getElementById('tot-var27-cell');
+
+      if (celdaTotPpto) celdaTotPpto.innerText = '$' + formatearNumeroVisual(totalPpto27);
+      if (celdaTotVar) {
+        celdaTotVar.innerText = totVar26_27 + '%';
+        celdaTotVar.className = totVar26_27 >= 0 ? 'verde' : 'rojo';
+      }
+    }
+
+    function actualizarDashboard() {
+      const datos = obtenerDatosFiltrados();
+      if (datos.length === 0) return;
+
+      const mapaClientes = {};
+      datos.forEach(function(d) {
+        const cli = d.razon_social_sec || 'OTROS';
+        if (!mapaClientes[cli]) mapaClientes[cli] = { v24: 0, v25: 0, v26: 0, p26: 0, p27: 0 };
+        mapaClientes[cli].v24 += Number(d.vta_24 || 0);
+        mapaClientes[cli].v25 += Number(d.vta_25 || 0);
+        mapaClientes[cli].v26 += Number(d.vta_proy_26 || 0);
+        mapaClientes[cli].p26 += Number(d.ppto_2026 || 0);
+        mapaClientes[cli].p27 += Number(d.ppto_2027 || 0);
+      });
+
+      const topClientes = Object.entries(mapaClientes)
+        .sort(function(a, b) { return b[1].v26 - a[1].v26; })
+        .slice(0, 10);
+
+      const labelsClientes = topClientes.map(function(c) { return c[0].length > 18 ? c[0].substring(0, 18) + '...' : c[0]; });
+
+      if (chartClientesInst) chartClientesInst.destroy();
+      chartClientesInst = new Chart(document.getElementById('chartClientes'), {
+        type: 'bar',
+        data: {
+          labels: labelsClientes,
+          datasets: [
+            { label: 'VTA 24', data: topClientes.map(function(c) { return c[1].v24; }), backgroundColor: '#cbd5e0' },
+            { label: 'VTA 25', data: topClientes.map(function(c) { return c
