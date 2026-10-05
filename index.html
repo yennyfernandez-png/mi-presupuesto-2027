@@ -25,6 +25,7 @@
     th { background: #2d3748; color: white; padding: 6px 4px; font-weight: 600; text-align: center; position: sticky; top: 0; z-index: 10; white-space: nowrap; }
     th.highlight { background: #2b6cb0; }
     
+    /* Fila de Totales Fija en el Encabezado */
     tr.fila-totales { background: #ebf8ff; font-weight: bold; position: sticky; top: 25px; z-index: 9; border-bottom: 2px solid #3182ce; }
     tr.fila-totales td { padding: 6px 4px; border-bottom: 2px solid #3182ce; color: #1a365d; font-size: 10px; text-align: right; }
     tr.fila-totales td.texto { text-align: left; }
@@ -37,6 +38,7 @@
     .verde { color: #2f855a; font-weight: bold; }
     .rojo { color: #e53e3e; font-weight: bold; }
 
+    /* Etiquetas Pareto */
     .badge-top { background: #c6f6d5; color: #22543d; font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: bold; margin-left: 4px; }
     .badge-sec { background: #e2e8f0; color: #4a5568; font-size: 9px; padding: 1px 5px; border-radius: 3px; margin-left: 4px; }
   </style>
@@ -46,7 +48,7 @@
   <div class="header-title">
     <div>
       <h1>📊 Presupuesto Comercial 2027</h1>
-      <p class="subhead">Totales y variaciones fijados en el encabezado. Modifica <strong>PPTO 2027</strong> para recalcular en tiempo real.</p>
+      <p class="subhead">Totales generales e indicadores fijados arriba. Edita <strong>PPTO 2027</strong> para recalcular en tiempo real.</p>
     </div>
   </div>
 
@@ -80,33 +82,26 @@
   <script>
     const SPREADSHEET_ID = '1fxDlguyE0s8R4plUXabyMpWoizPrXpLBKe8qfqPOKEY';
     const GID = '1139127679';
-    const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
-    const PROXY_URL = `https://api.allorigins.win/get?url=${encodeURIComponent(GVIZ_URL)}`;
 
     let datosOriginales = [];
     let vistaActual = 'detalle';
 
-    async function cargarDesdeGoogleSheet() {
-      try {
-        const response = await fetch(PROXY_URL);
-        const jsonProxy = await response.json();
-        const texto = jsonProxy.contents;
-        
-        const jsonTexto = texto.substring(texto.indexOf("{"), texto.lastIndexOf("}") + 1);
-        const jsonDatos = JSON.parse(jsonTexto);
-        
+    function cargarDesdeGoogleSheet() {
+      // Conexión segura JSONP sin bloqueos de navegador
+      const script = document.createElement('script');
+      script.src = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?gid=${GID}&tqx=responseHandler:recibirDatosGViz`;
+      document.body.appendChild(script);
+    }
+
+    window.recibirDatosGViz = function(jsonDatos) {
+      if (jsonDatos && jsonDatos.table) {
         datosOriginales = procesarFilasGViz(jsonDatos.table);
         poblarFiltroEmpresas();
         filtrarYRenderizar();
-      } catch (error) {
-        console.error("Error:", error);
-        document.getElementById('cuerpo-tabla').innerHTML = `
-          <tr><td colspan="16" style="color:red; text-align:center; padding:20px;">
-            ⚠️ Error al conectar con Google Sheets.<br>
-            Verifica que la hoja esté compartida como "Cualquier persona con el enlace".
-          </td></tr>`;
+      } else {
+        document.getElementById('cuerpo-tabla').innerHTML = '<tr><td colspan="16" style="color:red; text-align:center; padding:20px;">Error al cargar datos. Verifica los permisos de tu Google Sheet.</td></tr>';
       }
-    }
+    };
 
     function procesarFilasGViz(tabla) {
       const data = [];
@@ -190,6 +185,7 @@
         return;
       }
 
+      // Sumatorias totales
       const totalPpto26 = datos.reduce((s, d) => s + (d.ppto_2026 || 0), 0);
       const totalVta26  = datos.reduce((s, d) => s + (d.vta_proy_26 || 0), 0);
       const totalVta25  = datos.reduce((s, d) => s + (d.vta_25 || 0), 0);
