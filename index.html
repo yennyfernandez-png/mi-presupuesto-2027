@@ -83,7 +83,7 @@
       <button class="btn-tres-puntos" onclick="toggleMenuLooker(event)">⋮</button>
       <div id="menu-dropdown-looker" class="dropdown-menu-looker">
         <div class="dropdown-item" onclick="exportarAGoogleSheets()">
-          <span>📊</span> Exportar a Google Sheets
+          <span>📊</span> Abrir Google Sheet original
         </div>
         <div class="dropdown-item" onclick="descargarCSV()">
           <span>📄</span> Exportar datos (CSV / Excel)
@@ -120,9 +120,41 @@
     let columnaOrden = 'vta_proy_26';
     let ordenAscendente = false;
 
-    function cargarDesdeGoogleSheet() {
+    async function cargarDesdeGoogleSheet() {
+      const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(gvizUrl)}`;
+
+      try {
+        const response = await fetch(proxyUrl);
+        const jsonProxy = await response.json();
+        const texto = jsonProxy.contents;
+        
+        if (!texto || texto.includes("PERMISSION_DENIED")) {
+          throw new Error("Permiso denegado en Google Sheets");
+        }
+
+        const jsonTexto = texto.substring(texto.indexOf("{"), texto.lastIndexOf("}") + 1);
+        const jsonDatos = JSON.parse(jsonTexto);
+        
+        datosOriginales = procesarFilasGViz(jsonDatos.table);
+        poblarFiltroEmpresas();
+        filtrarYRenderizar();
+      } catch (error) {
+        console.warn("Fallo el proxy primario, intentando JSONP alternativo...", error);
+        cargarViaJSONP();
+      }
+    }
+
+    function cargarViaJSONP() {
       const script = document.createElement('script');
       script.src = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?gid=${GID}&tqx=responseHandler:recibirDatosGViz`;
+      script.onerror = function() {
+        document.getElementById('cuerpo-tabla').innerHTML = `
+          <tr><td colspan="16" style="color:red; text-align:center; padding:20px;">
+            ⚠️ <strong>Error de acceso a Google Sheets:</strong><br>
+            Asegúrate de que la hoja esté configurada como <em>"Cualquier persona con el enlace"</em> en el botón <strong>Compartir</strong> de Google Drive.
+          </td></tr>`;
+      };
       document.body.appendChild(script);
     }
 
@@ -132,7 +164,7 @@
         poblarFiltroEmpresas();
         filtrarYRenderizar();
       } else {
-        document.getElementById('cuerpo-tabla').innerHTML = '<tr><td colspan="16" style="color:red; text-align:center; padding:20px;">Error al cargar datos desde Google Sheets.</td></tr>';
+        document.getElementById('cuerpo-tabla').innerHTML = '<tr><td colspan="16" style="color:red; text-align:center; padding:20px;">Error al cargar datos desde Google Sheets. Verifica los permisos de acceso.</td></tr>';
       }
     };
 
@@ -146,4 +178,399 @@
 
         data.push({
           id: i + 1,
-          id_
+          id_empresa: obtenerVal(c[0]),
+          razon_social_sec: obtenerVal(c[1]),
+          familias_agrupadas: obtenerVal(c[2]),
+          nombre_familia: obtenerVal(c[3]),
+          ppto_2026: limpiarNumero(obtenerVal(c[4])),
+          vta_proy_26: limpiarNumero(obtenerVal(c[5])),
+          porc_proy: obtenerVal(c[6]) || '0%',
+          vta_25: limpiarNumero(obtenerVal(c[7])),
+          vta_24: limpiarNumero(obtenerVal(c[8])),
+          vta_23: limpiarNumero(obtenerVal(c[9])),
+          ppto_2027: limpiarNumero(obtenerVal(c[10])) || 0
+        });
+      }
+      return data;
+    }
+
+    function obtenerVal(celda) {
+      if (!celda) return '-';
+      return celda.v !== null && celda.v !== undefined ? celda.v.toString().trim() : '-';
+    }
+
+    function limpiarNumero(val) {
+      if (!val || val === '-') return 0;
+      const num = parseFloat(val.toString().replace(/[^0-9.-]+/g, ""));
+      return isNaN(num) ? 0 : num;
+    }
+
+    function poblarFiltroEmpresas() {
+      const empresas = [...new Set(datosOriginales.map(d => d.id_empresa))].filter(b => b && b !== '-');
+      const select = document.getElementById('select-empresa');
+      select.innerHTML = '<option value="TODOS">🌍 Todas las Empresas</option>';
+      empresas.forEach(emp => {
+        select.innerHTML += `<option value="${emp}">${emp}</option>`;
+      });
+    }
+
+    function cambiarVista(modo) {
+      vistaActual = modo;
+      document.querySelectorAll('.btn-group button').forEach(b => b.classList.remove('activo'));
+      if (modo === 'detalle') document.getElementById('btn-detalle').classList.add('activo');
+      if (modo === 'razon') document.getElementById('btn-razon').classList.add('activo');
+      if (modo === 'familia') document.getElementById('btn-familia').classList.add('activo');
+      filtrarYRenderizar();
+    }
+
+    function calcVar(vta, base) {
+      if (!base || base === 0) return 0;
+      return (((vta / base) - 1) * 100).toFixed(0);
+    }
+
+    function ordenarPor(col) {
+      if (columnaOrden === col) {
+        ordenAscendente = !ordenAscendente;
+      } else {
+        columnaOrden = col;
+        ordenAscendente = false;
+      }
+      filtrarYRenderizar();
+    }
+
+    function restablecerOrden() {
+      columnaOrden = 'vta_proy_26';
+      ordenAscendente = false;
+      filtrarYRenderizar();
+      cerrarMenuLooker();
+    }
+
+    function toggleMenuLooker(event) {
+      event.stopPropagation();
+      const menu = document.getElementById('menu-dropdown-looker');
+      menu.classList.toggle('show');
+    }
+
+    function cerrarMenuLooker() {
+      const menu = document.getElementById('menu-dropdown-looker');
+      if (menu) menu.classList.remove('show');
+    }
+
+    document.addEventListener('click', cerrarMenuLooker);
+
+    function filtrarYRenderizar() {
+      const empresaSeleccionada = document.getElementById('select-empresa').value;
+      let datosFiltrados = datosOriginales;
+
+      if (empresaSeleccionada !== 'TODOS') {
+        datosFiltrados = datosOriginales.filter(d => d.id_empresa === empresaSeleccionada);
+      }
+
+      renderizarTabla(datosFiltrados);
+    }
+
+    function renderizarTabla(datos) {
+      const thead = document.getElementById('encabezado-tabla');
+      const trTotales = document.getElementById('fila-totales');
+      const tbody = document.getElementById('cuerpo-tabla');
+
+      if (datos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="16" style="padding:20px; text-align:center;">No hay registros disponibles.</td></tr>';
+        trTotales.innerHTML = '';
+        return;
+      }
+
+      const totalPpto26 = datos.reduce((s, d) => s + (d.ppto_2026 || 0), 0);
+      const totalVta26  = datos.reduce((s, d) => s + (d.vta_proy_26 || 0), 0);
+      const totalVta25  = datos.reduce((s, d) => s + (d.vta_25 || 0), 0);
+      const totalVta24  = datos.reduce((s, d) => s + (d.vta_24 || 0), 0);
+      const totalVta23  = datos.reduce((s, d) => s + (d.vta_23 || 0), 0);
+      const totalPpto27 = datos.reduce((s, d) => s + (d.ppto_2027 || 0), 0);
+
+      const totVar26_27 = calcVar(totalVta26, totalPpto27);
+      const totVar26_25 = calcVar(totalVta26, totalVta25);
+      const totVar26_24 = calcVar(totalVta26, totalVta24);
+      const totVar26_23 = calcVar(totalVta26, totalVta23);
+      const totPorcProy = totalPpto26 > 0 ? ((totalVta26 / totalPpto26) * 100).toFixed(0) + '%' : '0%';
+
+      let filasParaMostrar = [];
+
+      if (vistaActual === 'detalle') {
+        thead.innerHTML = `
+          <th onclick="ordenarPor('id_empresa')">Id_empresa ↕</th>
+          <th onclick="ordenarPor('razon_social_sec')">razon_social_sec ↕</th>
+          <th onclick="ordenarPor('familias_agrupadas')">Familias Agrupadas ↕</th>
+          <th onclick="ordenarPor('nombre_familia')">nombre_familia ↕</th>
+          <th onclick="ordenarPor('ppto_2026')">PPTO 2026 ↕</th>
+          <th onclick="ordenarPor('vta_proy_26')">VTA + PROY ↕</th>
+          <th>%PROY</th>
+          <th onclick="ordenarPor('vta_25')">VTA 25 ↕</th>
+          <th onclick="ordenarPor('vta_24')">VTA 24 ↕</th>
+          <th onclick="ordenarPor('vta_23')">VTA 23 ↕</th>
+          <th class="highlight" onclick="ordenarPor('ppto_2027')">PPTO 2027 ↕</th>
+          <th>VTA 26VS27</th>
+          <th>VTA 26VS25</th>
+          <th>VTA 26VS24</th>
+          <th>VTA 26VS23</th>
+        `;
+
+        trTotales.innerHTML = `
+          <td class="texto" colspan="4">TOTAL GENERAL</td>
+          <td>$${Math.round(totalPpto26).toLocaleString()}</td>
+          <td>$${Math.round(totalVta26).toLocaleString()}</td>
+          <td>${totPorcProy}</td>
+          <td>$${Math.round(totalVta25).toLocaleString()}</td>
+          <td>$${Math.round(totalVta24).toLocaleString()}</td>
+          <td>$${Math.round(totalVta23).toLocaleString()}</td>
+          <td style="background:#d6bcfa; color:#2b6cb0;">$${Math.round(totalPpto27).toLocaleString()}</td>
+          <td class="${totVar26_27 >= 0 ? 'verde' : 'rojo'}">${totVar26_27}%</td>
+          <td class="${totVar26_25 >= 0 ? 'verde' : 'rojo'}">${totVar26_25}%</td>
+          <td class="${totVar26_24 >= 0 ? 'verde' : 'rojo'}">${totVar26_24}%</td>
+          <td class="${totVar26_23 >= 0 ? 'verde' : 'rojo'}">${totVar26_23}%</td>
+        `;
+
+        filasParaMostrar = [...datos];
+      } else {
+        const campoClave = vistaActual === 'razon' ? 'razon_social_sec' : 'familias_agrupadas';
+        thead.innerHTML = `
+          <th onclick="ordenarPor('id_empresa')">Id_empresa ↕</th>
+          <th onclick="ordenarPor('agrupador')">${vistaActual === 'razon' ? 'razon_social_sec' : 'Familias Agrupadas'} ↕</th>
+          <th onclick="ordenarPor('pctPart')">% Part. Venta ↕</th>
+          <th onclick="ordenarPor('pctAcum')">% Acumulado ↕</th>
+          <th onclick="ordenarPor('ppto_2026')">PPTO 2026 ↕</th>
+          <th onclick="ordenarPor('vta_proy_26')">VTA + PROY ↕</th>
+          <th onclick="ordenarPor('vta_25')">VTA 25 ↕</th>
+          <th onclick="ordenarPor('vta_24')">VTA 24 ↕</th>
+          <th onclick="ordenarPor('vta_23')">VTA 23 ↕</th>
+          <th class="highlight" onclick="ordenarPor('ppto_2027')">PPTO 2027 ↕</th>
+          <th>VTA 26VS27</th>
+          <th>VTA 26VS25</th>
+          <th>VTA 26VS24</th>
+          <th>VTA 26VS23</th>
+        `;
+
+        trTotales.innerHTML = `
+          <td class="texto" colspan="2">TOTAL GENERAL</td>
+          <td>100.0%</td>
+          <td>100.0%</td>
+          <td>$${Math.round(totalPpto26).toLocaleString()}</td>
+          <td>$${Math.round(totalVta26).toLocaleString()}</td>
+          <td>$${Math.round(totalVta25).toLocaleString()}</td>
+          <td>$${Math.round(totalVta24).toLocaleString()}</td>
+          <td>$${Math.round(totalVta23).toLocaleString()}</td>
+          <td style="background:#d6bcfa; color:#2b6cb0;">$${Math.round(totalPpto27).toLocaleString()}</td>
+          <td class="${totVar26_27 >= 0 ? 'verde' : 'rojo'}">${totVar26_27}%</td>
+          <td class="${totVar26_25 >= 0 ? 'verde' : 'rojo'}">${totVar26_25}%</td>
+          <td class="${totVar26_24 >= 0 ? 'verde' : 'rojo'}">${totVar26_24}%</td>
+          <td class="${totVar26_23 >= 0 ? 'verde' : 'rojo'}">${totVar26_23}%</td>
+        `;
+
+        const mapaAgrupado = {};
+        datos.forEach(item => {
+          const clave = item[campoClave] || 'SIN CLASIFICAR';
+          if (!mapaAgrupado[clave]) {
+            mapaAgrupado[clave] = {
+              id_empresa: item.id_empresa || '-',
+              agrupador: clave,
+              ppto_2026: 0,
+              vta_proy_26: 0,
+              vta_25: 0,
+              vta_24: 0,
+              vta_23: 0,
+              ppto_2027: 0
+            };
+          }
+          mapaAgrupado[clave].ppto_2026 += Number(item.ppto_2026 || 0);
+          mapaAgrupado[clave].vta_proy_26 += Number(item.vta_proy_26 || 0);
+          mapaAgrupado[clave].vta_25 += Number(item.vta_25 || 0);
+          mapaAgrupado[clave].vta_24 += Number(item.vta_24 || 0);
+          mapaAgrupado[clave].vta_23 += Number(item.vta_23 || 0);
+          mapaAgrupado[clave].ppto_2027 += Number(item.ppto_2027 || 0);
+        });
+
+        let listaAgrupada = Object.values(mapaAgrupado).sort((a, b) => b.vta_proy_26 - a.vta_proy_26);
+
+        let acumuladoPct = 0;
+        listaAgrupada.forEach(row => {
+          row.pctPart = totalVta26 > 0 ? (row.vta_proy_26 / totalVta26) * 100 : 0;
+          acumuladoPct += row.pctPart;
+          row.pctAcum = acumuladoPct;
+        });
+
+        filasParaMostrar = listaAgrupada;
+      }
+
+      filasParaMostrar.sort((a, b) => {
+        let valA = a[columnaOrden] ?? 0;
+        let valB = b[columnaOrden] ?? 0;
+
+        if (typeof valA === 'string') {
+          return ordenAscendente ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
+        return ordenAscendente ? valA - valB : valB - valA;
+      });
+
+      tbody.innerHTML = '';
+      filasParaMostrar.forEach(row => {
+        const ppto27 = Number(row.ppto_2027 || 0);
+        const v26 = Number(row.vta_proy_26 || 0);
+
+        const var26_27 = calcVar(v26, ppto27);
+        const var26_25 = calcVar(v26, row.vta_25);
+        const var26_24 = calcVar(v26, row.vta_24);
+        const var26_23 = calcVar(v26, row.vta_23);
+
+        const porcProyCalc = row.ppto_2026 > 0 ? ((v26 / row.ppto_2026) * 100).toFixed(0) + '%' : (row.porc_proy || '0%');
+
+        const tr = document.createElement('tr');
+        if (vistaActual === 'detalle') {
+          tr.innerHTML = `
+            <td class="texto">${row.id_empresa}</td>
+            <td class="texto" title="${row.razon_social_sec}">${row.razon_social_sec}</td>
+            <td class="texto" title="${row.familias_agrupadas}">${row.familias_agrupadas}</td>
+            <td class="texto" title="${row.nombre_familia}">${row.nombre_familia}</td>
+            <td>$${Math.round(row.ppto_2026).toLocaleString()}</td>
+            <td>$${Math.round(v26).toLocaleString()}</td>
+            <td>${porcProyCalc}</td>
+            <td>$${Math.round(row.vta_25).toLocaleString()}</td>
+            <td>$${Math.round(row.vta_24).toLocaleString()}</td>
+            <td>$${Math.round(row.vta_23).toLocaleString()}</td>
+            <td style="background:#ebf8ff;">
+              <input type="number" class="editable-ppto" value="${ppto27}" onchange="actualizarPpto(${row.id}, this.value)">
+            </td>
+            <td class="${var26_27 >= 0 ? 'verde' : 'rojo'}">${var26_27}%</td>
+            <td class="${var26_25 >= 0 ? 'verde' : 'rojo'}">${var26_25}%</td>
+            <td class="${var26_24 >= 0 ? 'verde' : 'rojo'}">${var26_24}%</td>
+            <td class="${var26_23 >= 0 ? 'verde' : 'rojo'}">${var26_23}%</td>
+          `;
+        } else {
+          const esTop80 = row.pctAcum <= 80 || (row.pctAcum - row.pctPart) < 80;
+          const badgeHtml = esTop80 ? '<span class="badge-top">Top 80%</span>' : '<span class="badge-sec">Secundario</span>';
+
+          tr.innerHTML = `
+            <td class="texto">${row.id_empresa}</td>
+            <td class="texto" title="${row.agrupador}"><strong>${row.agrupador}</strong> ${badgeHtml}</td>
+            <td><strong>${row.pctPart.toFixed(1)}%</strong></td>
+            <td>${row.pctAcum.toFixed(1)}%</td>
+            <td>$${Math.round(row.ppto_2026).toLocaleString()}</td>
+            <td>$${Math.round(v26).toLocaleString()}</td>
+            <td>$${Math.round(row.vta_25).toLocaleString()}</td>
+            <td>$${Math.round(row.vta_24).toLocaleString()}</td>
+            <td>$${Math.round(row.vta_23).toLocaleString()}</td>
+            <td style="background:#ebf8ff;">
+              <input type="number" class="editable-ppto" value="${ppto27}" onchange="actualizarPptoAgrupado('${row.agrupador}', this.value)">
+            </td>
+            <td class="${var26_27 >= 0 ? 'verde' : 'rojo'}">${var26_27}%</td>
+            <td class="${var26_25 >= 0 ? 'verde' : 'rojo'}">${var26_25}%</td>
+            <td class="${var26_24 >= 0 ? 'verde' : 'rojo'}">${var26_24}%</td>
+            <td class="${var26_23 >= 0 ? 'verde' : 'rojo'}">${var26_23}%</td>
+          `;
+        }
+        tbody.appendChild(tr);
+      });
+    }
+
+    function actualizarPpto(id, valor) {
+      const nuevoValor = parseFloat(valor) || 0;
+      const item = datosOriginales.find(d => d.id === id);
+      if (item) item.ppto_2027 = nuevoValor;
+
+      filtrarYRenderizar();
+    }
+
+    function actualizarPptoAgrupado(agrupadorClave, valorTotalNuevo) {
+      const nuevoTotal = parseFloat(valorTotalNuevo) || 0;
+      const campoClave = vistaActual === 'razon' ? 'razon_social_sec' : 'familias_agrupadas';
+      const itemsGrupo = datosOriginales.filter(d => (d[campoClave] || 'SIN CLASIFICAR') === agrupadorClave);
+
+      const vtaTotalGrupo = itemsGrupo.reduce((s, i) => s + (i.vta_proy_26 || 0), 0);
+
+      itemsGrupo.forEach(item => {
+        if (vtaTotalGrupo > 0) {
+          item.ppto_2027 = Math.round((item.vta_proy_26 / vtaTotalGrupo) * nuevoTotal);
+        } else {
+          item.ppto_2027 = Math.round(nuevoTotal / itemsGrupo.length);
+        }
+      });
+
+      filtrarYRenderizar();
+    }
+
+    function exportarAGoogleSheets() {
+      cerrarMenuLooker();
+      window.open(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit#gid=${GID}`, '_blank');
+    }
+
+    function descargarCSV() {
+      cerrarMenuLooker();
+      const empresaSeleccionada = document.getElementById('select-empresa').value;
+      let datosExportar = datosOriginales;
+
+      if (empresaSeleccionada !== 'TODOS') {
+        datosExportar = datosOriginales.filter(d => d.id_empresa === empresaSeleccionada);
+      }
+
+      let csvContent = "\uFEFF";
+      csvContent += "Id_empresa,razon_social_sec,Familias Agrupadas,nombre_familia,PPTO 2026,VTA + PROY 26,VTA 25,VTA 24,VTA 23,PPTO 2027,VTA 26VS27,VTA 26VS25,VTA 26VS24,VTA 26VS23\n";
+
+      datosExportar.forEach(d => {
+        const v26 = d.vta_proy_26 || 0;
+        const p27 = d.ppto_2027 || 0;
+        const var27 = calcVar(v26, p27);
+        const var25 = calcVar(v26, d.vta_25);
+        const var24 = calcVar(v26, d.vta_24);
+        const var23 = calcVar(v26, d.vta_23);
+
+        const fila = [
+          `"${d.id_empresa}"`,
+          `"${d.razon_social_sec}"`,
+          `"${d.familias_agrupadas}"`,
+          `"${d.nombre_familia}"`,
+          d.ppto_2026,
+          v26,
+          d.vta_25,
+          d.vta_24,
+          d.vta_23,
+          p27,
+          `"${var27}%"`,
+          `"${var25}%"`,
+          `"${var24}%"`,
+          `"${var23}%"`
+        ];
+        csvContent += fila.join(",") + "\n";
+      });
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Presupuesto_2027_${empresaSeleccionada}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function copiarAlPortapapeles() {
+      cerrarMenuLooker();
+      const empresaSeleccionada = document.getElementById('select-empresa').value;
+      let datosExportar = datosOriginales;
+
+      if (empresaSeleccionada !== 'TODOS') {
+        datosExportar = datosOriginales.filter(d => d.id_empresa === empresaSeleccionada);
+      }
+
+      let textoClip = "Id_empresa\trazon_social_sec\tFamilias Agrupadas\tnombre_familia\tPPTO 2026\tVTA + PROY 26\tVTA 25\tVTA 24\tVTA 23\tPPTO 2027\n";
+
+      datosExportar.forEach(d => {
+        textoClip += `${d.id_empresa}\t${d.razon_social_sec}\t${d.familias_agrupadas}\t${d.nombre_familia}\t${d.ppto_2026}\t${d.vta_proy_26}\t${d.vta_25}\t${d.vta_24}\t${d.vta_23}\t${d.ppto_2027}\n`;
+      });
+
+      navigator.clipboard.writeText(textoClip).then(() => {
+        alert("¡Datos copiados al portapapeles! Ya puedes pegarlos en Excel o Google Sheets con Ctrl+V.");
+      });
+    }
+
+    cargarDesdeGoogleSheet();
+  </script>
+</body>
+</html>
