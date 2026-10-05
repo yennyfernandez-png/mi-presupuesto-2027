@@ -23,9 +23,10 @@
     .btn-group button.activo { background: #2b6cb0; color: white; }
 
     .status-badge { font-size: 10px; padding: 3px 8px; border-radius: 12px; background: #c6f6d5; color: #22543d; font-weight: 600; }
-
-    .btn-guardar { background: #2f855a; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: background 0.2s; }
+    .btn-guardar { background: #2f855a; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     .btn-guardar:hover { background: #276749; }
+
+    .btn-cargar-file { background: #2b6cb0; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; }
 
     .menu-looker-container { margin-left: auto; position: relative; }
     .btn-tres-puntos { background: transparent; border: 1px solid #cbd5e0; border-radius: 4px; padding: 4px 10px; font-size: 16px; font-weight: bold; cursor: pointer; color: #4a5568; }
@@ -37,7 +38,8 @@
     .dropdown-item:hover { background: #ebf8ff; color: #2b6cb0; }
     .dropdown-divider { height: 1px; background: #e2e8f0; margin: 4px 0; }
 
-    .tabla-container { width: 100%; overflow-x: auto; background: #fff; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); max-height: 75vh; overflow-y: auto; position: relative; }
+    /* CONTENEDOR DE TABLA DE ALTURA COMPLETA */
+    .tabla-container { width: 100%; overflow-x: auto; background: #fff; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); max-height: 85vh; overflow-y: auto; position: relative; }
     table { width: 100%; border-collapse: collapse; font-size: 10px; text-align: left; }
     
     th { background: #2d3748; color: white; padding: 6px 4px; font-weight: 600; text-align: center; position: sticky; top: 0; z-index: 10; white-space: nowrap; cursor: pointer; user-select: none; }
@@ -84,6 +86,8 @@
     .dashboard-container { display: none; gap: 15px; flex-wrap: wrap; }
     .chart-card { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); flex: 1; min-width: 480px; }
     .chart-card h3 { font-size: 13px; color: #1a365d; margin-top: 0; margin-bottom: 12px; border-bottom: 1px solid #edf2f7; padding-bottom: 6px; }
+
+    .info-filas { font-size: 11px; font-weight: bold; color: #2b6cb0; margin-left: 10px; }
   </style>
 </head>
 <body>
@@ -91,9 +95,9 @@
   <div class="header-title">
     <div>
       <h1>📊 Presupuesto Comercial 2027</h1>
-      <p class="subhead">Modo de Alta Velocidad (Rendimiento Estable sin Bloqueos de Red).</p>
+      <p class="subhead">Visualización completa de todas las filas existentes sin cortes.</p>
     </div>
-    <span id="status-indicator" class="status-badge">⚡ Carga Instantánea</span>
+    <span id="status-indicator" class="status-badge">⚡ Cargando...</span>
   </div>
 
   <div class="tabs-main">
@@ -110,14 +114,18 @@
 
     <button id="btn-limpiar-filtros" class="tab-button" style="background:#edf2f7; color:#2d3748;" onclick="limpiarTodosFiltrosExcel()">🧹 Limpiar Filtros Excel</button>
 
+    <label class="btn-cargar-file">
+      📁 Cargar CSV
+      <input type="file" id="input-file-csv" accept=".csv" style="display:none;" onchange="cargarDesdeArchivoLocal(this)">
+    </label>
+
     <button id="btn-guardar-cloud" class="btn-guardar" onclick="guardarLocalmente()">💾 Guardar Cambios</button>
+
+    <span id="txt-contador-filas" class="info-filas">Mostrando todas las filas...</span>
 
     <div class="menu-looker-container">
       <button class="btn-tres-puntos" onclick="toggleMenuLooker(event)">⋮</button>
       <div id="menu-dropdown-looker" class="dropdown-menu-looker">
-        <div class="dropdown-item" onclick="exportarAGoogleSheets()">
-          <span>📊</span> Abrir Google Sheet original
-        </div>
         <div class="dropdown-item" onclick="descargarCSV()">
           <span>📄</span> Exportar datos (CSV / Excel)
         </div>
@@ -178,24 +186,7 @@
   </div>
 
   <script>
-    const SPREADSHEET_ID = '1fxDlguyE0s8R4plUXabyMpWoizPrXpLBKe8qfqPOKEY';
-    const GID = '1139127679';
-
-    // BASE ESTÁTICA LOCAL (Garantiza cero demoras y cero errores de red)
-    let datosOriginales = [
-      { id: 1, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "SERVICIOS PETROLEROS SOCIEDAD DE", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROLADORES Y REDES", ppto_2026: 0, vta_proy_26: 1523.28, porc_proy: "0%", vta_25: 0, vta_24: 0, vta_23: 0, ppto_2027: 0 },
-      { id: 2, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "AGRIPAC BOLIVIANA AGROINDUSTRIAL", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROL Y SOFTWARE DE VISUALIZACION", ppto_2026: 0, vta_proy_26: 0, porc_proy: "0%", vta_25: 1844.15, vta_24: 2016.2, vta_23: 0, ppto_2027: 0 },
-      { id: 3, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "AGRIPAC BOLIVIANA AGROINDUSTRIAL", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROLADORES Y REDES", ppto_2026: 0, vta_proy_26: 0, porc_proy: "0%", vta_25: 15034.13, vta_24: 0, vta_23: 0, ppto_2027: 0 },
-      { id: 4, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "AGRIPAC BOLIVIANA AGROINDUSTRIAL", familias_agrupadas: "CONTROL INDUSTRIAL", nombre_familia: "CONTROL INDUSTRIAL", ppto_2026: 0, vta_proy_26: 0, porc_proy: "0%", vta_25: 282.91, vta_24: 0, vta_23: 0, ppto_2027: 0 },
-      { id: 5, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "ARMANDO PEDRO VEDIA LOPEZ", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROL Y SOFTWARE DE VISUALIZACION", ppto_2026: 0, vta_proy_26: 0, porc_proy: "0%", vta_25: 865.18, vta_24: 0, vta_23: 0, ppto_2027: 0 },
-      { id: 6, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "BANCO PYME DE LA COMUNIDAD S.A.", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROLADORES Y REDES", ppto_2026: 0, vta_proy_26: 0, porc_proy: "0%", vta_25: 0, vta_24: 662.77, vta_23: 0, ppto_2027: 0 },
-      { id: 7, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "BANCO PYME DE LA COMUNIDAD S.A.", familias_agrupadas: "VARIADORES DE FRECUENCIA", nombre_familia: "VARIADORES DE FRECUENCIA", ppto_2026: 0, vta_proy_26: 0, porc_proy: "0%", vta_25: 0, vta_24: 2812.81, vta_23: 0, ppto_2027: 0 },
-      { id: 8, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "BHMATIC S.R.L.", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROLADORES Y REDES", ppto_2026: 0, vta_proy_26: 0, porc_proy: "0%", vta_25: 0, vta_24: 762.55, vta_23: 0, ppto_2027: 0 },
-      { id: 9, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "BLOQUE PETROLERO SAN ALBERTO", familias_agrupadas: "CONTROL INDUSTRIAL", nombre_familia: "CONTROL INDUSTRIAL", ppto_2026: 0, vta_proy_26: 0, porc_proy: "0%", vta_25: 0, vta_24: 0, vta_23: 0, ppto_2027: 0 },
-      { id: 10, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "BLOQUE PETROLERO SAN ALBERTO", familias_agrupadas: "SERVICIOS ROCKWELL", nombre_familia: "SERVICIOS ROCKWELL", ppto_2026: 0, vta_proy_26: 0, porc_proy: "0%", vta_25: 0, vta_24: 0, vta_23: 0, ppto_2027: 0 },
-      { id: 11, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "DISACRUZ S.R.L.", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROL Y SOFTWARE DE VISUALIZACION", ppto_2026: 0, vta_proy_26: 3151.75, porc_proy: "0%", vta_25: 1410.69, vta_24: 857.02, vta_23: 0, ppto_2027: 0 }
-    ];
-
+    let datosOriginales = [];
     let vistaActual = 'detalle';
     let seccionActiva = 'tabla';
     let columnaOrden = 'vta_proy_26';
@@ -208,21 +199,106 @@
     let chartFamiliasInst = null;
     let chartHistoricoInst = null;
 
-    function iniciarAplicacion() {
-      // Intentar cargar la base en caché o ediciones previas del usuario
-      const edicionesLocales = localStorage.getItem('presupuesto_ediciones_2027');
-      const cacheGuardado = localStorage.getItem('presupuesto_cache_datos');
+    async function iniciarAplicacion() {
+      // 1. Intentar cargar desde el archivo local datos_2027.csv
+      try {
+        const res = await fetch('datos_2027.csv?ts=' + Date.now());
+        if (res.ok) {
+          const texto = await res.text();
+          const filas = parsearCSV(texto);
+          if (filas.length > 1) {
+            procesarFilasCSV(filas);
+            actualizarEstado("✅ Cargado completo (" + (filas.length - 1) + " filas)", "status-badge");
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("No se encontró datos_2027.csv local...");
+      }
 
+      // 2. Intentar memoria local
+      const cacheGuardado = localStorage.getItem('presupuesto_cache_datos');
       if (cacheGuardado) {
         try {
           datosOriginales = JSON.parse(cacheGuardado);
-        } catch(e) {}
+          filtrarYRenderizar();
+          actualizarEstado("📷 Cargado desde memoria local", "status-badge");
+          return;
+        } catch (e) {}
       }
 
+      document.getElementById('cuerpo-tabla').innerHTML = '<tr><td colspan="16" style="text-align:center; padding:20px;">Suba su archivo de presupuesto completo usando el botón <strong>📁 Cargar CSV</strong>.</td></tr>';
+    }
+
+    function cargarDesdeArchivoLocal(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const contenido = e.target.result;
+        const filas = parsearCSV(contenido);
+        procesarFilasCSV(filas);
+        actualizarEstado("✅ " + (filas.length - 1) + " Filas Cargadas", "status-badge");
+      };
+      reader.readAsText(file);
+    }
+
+    function parsearCSV(texto) {
+      const lineas = texto.split(/\r\n|\n/);
+      const resultado = [];
+      for (let i = 0; i < lineas.length; i++) {
+        const linea = lineas[i].trim();
+        if (!linea) continue;
+
+        const celdas = [];
+        let dentroComillas = false;
+        let campo = '';
+
+        for (let j = 0; j < linea.length; j++) {
+          const char = linea[j];
+          if (char === '"') {
+            dentroComillas = !dentroComillas;
+          } else if (char === ',' && !dentroComillas) {
+            celdas.push(campo);
+            campo = '';
+          } else {
+            campo += char;
+          }
+        }
+        celdas.push(campo);
+        resultado.push(celdas);
+      }
+      return resultado;
+    }
+
+    function procesarFilasCSV(filas) {
+      const data = [];
+      for (let i = 1; i < filas.length; i++) {
+        const c = filas[i];
+        if (!c || c.length < 4) continue;
+
+        data.push({
+          id: i,
+          id_empresa: limpiarTexto(c[0]),
+          razon_social_sec: limpiarTexto(c[1]),
+          familias_agrupadas: limpiarTexto(c[2]),
+          nombre_familia: limpiarTexto(c[3]),
+          ppto_2026: limpiarNumero(c[4]),
+          vta_proy_26: limpiarNumero(c[5]),
+          porc_proy: c[6] || '0%',
+          vta_25: limpiarNumero(c[7]),
+          vta_24: limpiarNumero(c[8]),
+          vta_23: limpiarNumero(c[9]),
+          ppto_2027: limpiarNumero(c[10]) || 0
+        });
+      }
+
+      const edicionesLocales = localStorage.getItem('presupuesto_ediciones_2027');
       if (edicionesLocales) {
         try {
           const mapaEdiciones = JSON.parse(edicionesLocales);
-          datosOriginales.forEach(function(d) {
+          data.forEach(function(d) {
             if (mapaEdiciones[d.id] !== undefined) {
               d.ppto_2027 = mapaEdiciones[d.id];
             }
@@ -230,12 +306,15 @@
         } catch(e) {}
       }
 
+      datosOriginales = data;
+      localStorage.setItem('presupuesto_cache_datos', JSON.stringify(datosOriginales));
+      filtrosExcelActivos = {};
       filtrarYRenderizar();
     }
 
-    function formatearNumeroVisual(num) {
-      if (!num || isNaN(num)) return "0";
-      return Math.round(num).toLocaleString('en-US');
+    function limpiarTexto(val) {
+      if (!val) return '-';
+      return val.toString().replace(/^"|"$/g, '').trim();
     }
 
     function limpiarNumero(val) {
@@ -256,11 +335,24 @@
       return isNaN(num) ? 0 : num;
     }
 
+    function formatearNumeroVisual(num) {
+      if (!num || isNaN(num)) return "0";
+      return Math.round(num).toLocaleString('en-US');
+    }
+
     function calcVar(vta, base) {
       const numVta = Number(vta) || 0;
       const numBase = Number(base) || 0;
       if (numBase === 0) return numVta > 0 ? 100 : 0;
       return (((numVta / numBase) - 1) * 100).toFixed(0);
+    }
+
+    function actualizarEstado(mensaje, clase) {
+      const el = document.getElementById('status-indicator');
+      if (el) {
+        el.innerText = mensaje;
+        el.className = 'status-badge ' + clase;
+      }
     }
 
     function guardarLocalmente() {
@@ -402,7 +494,14 @@
       return datosBase.filter(function(d) {
         for (let campo in filtrosExcelActivos) {
           const permitidos = filtrosExcelActivos[campo];
-          const valStr = (d[campo] !== undefined && d[campo] !== null) ? d[campo].toString() : '(en blanco)';
+          let valStr = '(en blanco)';
+
+          if (d[campo] !== undefined && d[campo] !== null) {
+            valStr = d[campo].toString();
+          } else if (campo === 'agrupador' && (d.razon_social_sec || d.familias_agrupadas)) {
+            valStr = (d.razon_social_sec || d.familias_agrupadas).toString();
+          }
+
           if (permitidos && !permitidos.has(valStr)) {
             return false;
           }
@@ -462,9 +561,14 @@
       const thead = document.getElementById('encabezado-tabla');
       const trTotales = document.getElementById('fila-totales');
       const tbody = document.getElementById('cuerpo-tabla');
+      const txtContador = document.getElementById('txt-contador-filas');
+
+      if (txtContador) {
+        txtContador.innerText = "Mostrando " + datos.length + " filas de " + datosOriginales.length + " totales";
+      }
 
       if (datos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="16" style="padding:20px; text-align:center;">No hay registros disponibles.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="16" style="padding:20px; text-align:center;">No hay registros disponibles. Presione <strong>🧹 Limpiar Filtros Excel</strong>.</td></tr>';
         trTotales.innerHTML = '';
         return;
       }
@@ -763,11 +867,6 @@
       });
     }
 
-    function exportarAGoogleSheets() {
-      cerrarMenuLooker();
-      window.open('https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID + '/edit#gid=' + GID, '_blank');
-    }
-
     function descargarCSV() {
       cerrarMenuLooker();
       const datosExportar = obtenerDatosFiltrados();
@@ -827,7 +926,6 @@
       });
     }
 
-    // INICIAR APLICACIÓN SIN DEPENDENCIAS EXTERNAS DE GOOGLE
     iniciarAplicacion();
   </script>
 </body>
