@@ -11,15 +11,6 @@
     h1 { color: #1a365d; font-size: 18px; margin: 0; }
     .subhead { color: #4a5568; font-size: 11px; margin: 0; }
 
-    /* Tarjetas KPI Superiores para cada categoría */
-    .kpi-container { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
-    .kpi-card { background: #fff; border-radius: 6px; padding: 6px 10px; flex: 1; min-width: 120px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 3px solid #4a5568; }
-    .kpi-card.destacado { border-left-color: #2b6cb0; background: #ebf8ff; }
-    .kpi-card.verde { border-left-color: #2f855a; }
-    .kpi-title { font-size: 9px; text-transform: uppercase; color: #718096; font-weight: bold; margin-bottom: 2px; white-space: nowrap; }
-    .kpi-value { font-size: 14px; font-weight: bold; color: #1a202c; white-space: nowrap; }
-    .kpi-sub { font-size: 9px; color: #4a5568; font-weight: 600; white-space: nowrap; }
-
     .panel-controles { display: flex; gap: 15px; align-items: center; background: #fff; padding: 8px 12px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 10px; flex-wrap: wrap; }
     .filtro-item { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: bold; }
     select { padding: 4px 8px; border-radius: 4px; border: 1px solid #cbd5e0; background: #f8fafc; font-size: 12px; }
@@ -28,16 +19,22 @@
     .btn-group button { border: none; background: transparent; padding: 5px 10px; font-size: 11px; font-weight: 600; cursor: pointer; border-radius: 3px; color: #4a5568; }
     .btn-group button.activo { background: #2b6cb0; color: white; }
 
-    .tabla-container { width: 100%; overflow-x: auto; background: #fff; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); max-height: 72vh; overflow-y: auto; }
+    .tabla-container { width: 100%; overflow-x: auto; background: #fff; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); max-height: 80vh; overflow-y: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 10px; text-align: left; }
     
     th { background: #2d3748; color: white; padding: 6px 4px; font-weight: 600; text-align: center; position: sticky; top: 0; z-index: 10; white-space: nowrap; }
     th.highlight { background: #2b6cb0; }
+    
+    /* Fila de Totales Generales Fija en Cabecera */
+    tr.fila-totales { background: #ebf8ff; font-weight: bold; position: sticky; top: 25px; z-index: 9; border-bottom: 2px solid #3182ce; }
+    tr.fila-totales td { padding: 6px 4px; border-bottom: 2px solid #3182ce; color: #1a365d; font-size: 10px; text-align: right; }
+    tr.fila-totales td.texto { text-align: left; }
+
     td { padding: 4px 4px; border-bottom: 1px solid #e2e8f0; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     td.texto { text-align: left; }
     tr:hover { background-color: #f7fafc; }
 
-    input.editable-ppto { width: 75px; padding: 2px 4px; font-weight: bold; border: 1px solid #3182ce; border-radius: 3px; background: #ebf8ff; text-align: right; font-size: 10px; }
+    input.editable-ppto { width: 75px; padding: 2px 4px; font-weight: bold; border: 1px solid #3182ce; border-radius: 3px; background: #fff; text-align: right; font-size: 10px; }
     .verde { color: #2f855a; font-weight: bold; }
     .rojo { color: #e53e3e; font-weight: bold; }
 
@@ -51,40 +48,7 @@
   <div class="header-title">
     <div>
       <h1>📊 Presupuesto Comercial 2027</h1>
-      <p class="subhead">Totales acumulados por categoría a partir de PPTO 2026. Edita los montos en <strong>PPTO 2027</strong> para actualizar.</p>
-    </div>
-  </div>
-
-  <!-- KPI TOTALES SUPERIORES DESDE PPTO 2026 EN ADELANTE -->
-  <div class="kpi-container">
-    <div class="kpi-card">
-      <div class="kpi-title">PPTO 2026</div>
-      <div class="kpi-value" id="kpi-ppto26">$0</div>
-    </div>
-    <div class="kpi-card destacado">
-      <div class="kpi-title">VTA + PROY 26</div>
-      <div class="kpi-value" id="kpi-vta26">$0</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-title">VTA 25</div>
-      <div class="kpi-value" id="kpi-vta25">$0</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-title">VTA 24</div>
-      <div class="kpi-value" id="kpi-vta24">$0</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-title">VTA 23</div>
-      <div class="kpi-value" id="kpi-vta23">$0</div>
-    </div>
-    <div class="kpi-card verde">
-      <div class="kpi-title">PPTO 2027 (EDITABLE)</div>
-      <div class="kpi-value" id="kpi-ppto27">$0</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-title">VAR 26VS27</div>
-      <div class="kpi-value" id="kpi-var-global">0%</div>
-      <div class="kpi-sub" id="kpi-dif-monto">$0 dif</div>
+      <p class="subhead">Totales y variaciones fijados en el encabezado. Modifica <strong>PPTO 2027</strong> para recalcular en tiempo real.</p>
     </div>
   </div>
 
@@ -107,6 +71,7 @@
     <table>
       <thead>
         <tr id="encabezado-tabla"></tr>
+        <tr id="fila-totales" class="fila-totales"></tr>
       </thead>
       <tbody id="cuerpo-tabla">
         <tr><td colspan="16" style="text-align:center; padding:20px;">Cargando datos desde Google Sheets...</td></tr>
@@ -117,27 +82,26 @@
   <script>
     const SPREADSHEET_ID = '1fxDlguyE0s8R4plUXabyMpWoizPrXpLBKe8qfqPOKEY';
     const GID = '1139127679';
-    const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
 
     let datosOriginales = [];
     let vistaActual = 'detalle';
 
-    async function cargarDesdeGoogleSheet() {
-      try {
-        const respuesta = await fetch(GVIZ_URL);
-        const texto = await respuesta.text();
-        
-        const jsonTexto = texto.substring(47, texto.length - 2);
-        const jsonDatos = JSON.parse(jsonTexto);
-        
+    function cargarDesdeGoogleSheet() {
+      // Método seguro via Script Tag / JSONP de Google Visualization
+      const script = document.createElement('script');
+      script.src = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?gid=${GID}&tqx=responseHandler:recibirDatosGViz`;
+      document.body.appendChild(script);
+    }
+
+    window.recibirDatosGViz = function(jsonDatos) {
+      if (jsonDatos && jsonDatos.table) {
         datosOriginales = procesarFilasGViz(jsonDatos.table);
         poblarFiltroEmpresas();
         filtrarYRenderizar();
-      } catch (error) {
-        console.error("Error al leer Google Sheet:", error);
-        document.getElementById('cuerpo-tabla').innerHTML = `<tr><td colspan="16" style="color:red; padding:20px; text-align:center;">Error al conectar con Google Sheets.</td></tr>`;
+      } else {
+        document.getElementById('cuerpo-tabla').innerHTML = '<tr><td colspan="16" style="color:red; text-align:center; padding:20px;">Error al cargar datos desde Google Sheets.</td></tr>';
       }
-    }
+    };
 
     function procesarFilasGViz(tabla) {
       const data = [];
@@ -199,8 +163,100 @@
       return (((vta / base) - 1) * 100).toFixed(0);
     }
 
-    function actualizarKPISuperiores(datos) {
-      const totalPpto26 = datos.reduce((sum, d) => sum + (d.ppto_2026 || 0), 0);
-      const totalVta26  = datos.reduce((sum, d) => sum + (d.vta_proy_26 || 0), 0);
-      const totalVta25  = datos.reduce((sum, d) => sum + (d.vta_25 || 0), 0);
-      const totalVta24
+    function filtrarYRenderizar() {
+      const empresaSeleccionada = document.getElementById('select-empresa').value;
+      let datosFiltrados = datosOriginales;
+
+      if (empresaSeleccionada !== 'TODOS') {
+        datosFiltrados = datosOriginales.filter(d => d.id_empresa === empresaSeleccionada);
+      }
+
+      renderizarTabla(datosFiltrados);
+    }
+
+    function renderizarTabla(datos) {
+      const thead = document.getElementById('encabezado-tabla');
+      const trTotales = document.getElementById('fila-totales');
+      const tbody = document.getElementById('cuerpo-tabla');
+
+      if (datos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="16" style="padding:20px; text-align:center;">No hay registros disponibles.</td></tr>';
+        trTotales.innerHTML = '';
+        return;
+      }
+
+      // Cálculo de Totales Generales
+      const totalPpto26 = datos.reduce((s, d) => s + (d.ppto_2026 || 0), 0);
+      const totalVta26  = datos.reduce((s, d) => s + (d.vta_proy_26 || 0), 0);
+      const totalVta25  = datos.reduce((s, d) => s + (d.vta_25 || 0), 0);
+      const totalVta24  = datos.reduce((s, d) => s + (d.vta_24 || 0), 0);
+      const totalVta23  = datos.reduce((s, d) => s + (d.vta_23 || 0), 0);
+      const totalPpto27 = datos.reduce((s, d) => s + (d.ppto_2027 || 0), 0);
+
+      const totVar26_27 = calcVar(totalVta26, totalPpto27);
+      const totVar26_25 = calcVar(totalVta26, totalVta25);
+      const totVar26_24 = calcVar(totalVta26, totalVta24);
+      const totVar26_23 = calcVar(totalVta26, totalVta23);
+      const totPorcProy = totalPpto26 > 0 ? ((totalVta26 / totalPpto26) * 100).toFixed(0) + '%' : '0%';
+
+      let filasParaMostrar = [];
+
+      if (vistaActual === 'detalle') {
+        thead.innerHTML = `
+          <th>Id_empresa</th>
+          <th>razon_social_sec</th>
+          <th>Familias Agrupadas</th>
+          <th>nombre_familia</th>
+          <th>PPTO 2026</th>
+          <th>VTA + PROY</th>
+          <th>%PROY</th>
+          <th>VTA 25</th>
+          <th>VTA 24</th>
+          <th>VTA 23</th>
+          <th class="highlight">PPTO 2027</th>
+          <th>VTA 26VS27</th>
+          <th>VTA 26VS25</th>
+          <th>VTA 26VS24</th>
+          <th>VTA 26VS23</th>
+        `;
+
+        trTotales.innerHTML = `
+          <td class="texto" colspan="4">TOTAL GENERAL</td>
+          <td>$${Math.round(totalPpto26).toLocaleString()}</td>           <td>$${Math.round(totalVta26).toLocaleString()}</td>
+          <td>${totPorcProy}</td>
+          <td>$${Math.round(totalVta25).toLocaleString()}</td>           <td>$${Math.round(totalVta24).toLocaleString()}</td>
+          <td>$${Math.round(totalVta23).toLocaleString()}</td>           <td style="background:#d6bcfa; color:#2b6cb0;">$${Math.round(totalPpto27).toLocaleString()}</td>
+          <td class="${totVar26_27 >= 0 ? 'verde' : 'rojo'}">${totVar26_27}%</td>
+          <td class="${totVar26_25 >= 0 ? 'verde' : 'rojo'}">${totVar26_25}%</td>
+          <td class="${totVar26_24 >= 0 ? 'verde' : 'rojo'}">${totVar26_24}%</td>
+          <td class="${totVar26_23 >= 0 ? 'verde' : 'rojo'}">${totVar26_23}%</td>
+        `;
+
+        filasParaMostrar = datos;
+      } else {
+        const campoClave = vistaActual === 'razon' ? 'razon_social_sec' : 'familias_agrupadas';
+        thead.innerHTML = `
+          <th>Id_empresa</th>
+          <th>${vistaActual === 'razon' ? 'razon_social_sec' : 'Familias Agrupadas'}</th>
+          <th>% Part. Venta</th>
+          <th>% Acumulado</th>
+          <th>PPTO 2026</th>
+          <th>VTA + PROY</th>
+          <th>VTA 25</th>
+          <th>VTA 24</th>
+          <th>VTA 23</th>
+          <th class="highlight">PPTO 2027</th>
+          <th>VTA 26VS27</th>
+          <th>VTA 26VS25</th>
+          <th>VTA 26VS24</th>
+          <th>VTA 26VS23</th>
+        `;
+
+        trTotales.innerHTML = `
+          <td class="texto" colspan="2">TOTAL GENERAL</td>
+          <td>100.0%</td>
+          <td>100.0%</td>
+          <td>$${Math.round(totalPpto26).toLocaleString()}</td>           <td>$${Math.round(totalVta26).toLocaleString()}</td>
+          <td>$${Math.round(totalVta25).toLocaleString()}</td>           <td>$${Math.round(totalVta24).toLocaleString()}</td>
+          <td>$${Math.round(totalVta23).toLocaleString()}</td>           <td style="background:#d6bcfa; color:#2b6cb0;">$${Math.round(totalPpto27).toLocaleString()}</td>
+          <td class="${totVar26_27 >= 0 ? 'verde' : 'rojo'}">${totVar26_
