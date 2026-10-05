@@ -63,9 +63,7 @@
   </div>
 
   <script>
-    const SPREADSHEET_ID = '1fxDlguyE0s8R4plUXabyMpWoizPrXpLBKe8qfqPOKEY';
-    const GID = '1139127679';
-    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQg66Bztd1en9-FeRpYSCYw5EpCKENstLhX-JOfgW8Nyfv8woaFwE7H9dMsjwRKaansPEtXAkcVlAnp/pub?output=csv';
 
     let datosOriginales = [];
     let vistaActual = 'detalle';
@@ -80,16 +78,26 @@
         filtrarYRenderizar();
       } catch (error) {
         console.error("Error al leer Google Sheet:", error);
-        document.getElementById('cuerpo-tabla').innerHTML = `<tr><td colspan="15" style="color:red; padding:20px; text-align:center;">Error al cargar datos. Verifica que la hoja de Google Sheet sea pública.</td></tr>`;
+        document.getElementById('cuerpo-tabla').innerHTML = `<tr><td colspan="15" style="color:red; padding:20px; text-align:center;">Error al cargar datos. Verifica la conexión con Google Sheets.</td></tr>`;
       }
     }
 
     function parsearCSV(texto) {
-      const filas = texto.split('\n').map(f => f.split(',').map(c => c.replace(/^"|"$/g, '').trim()));
+      const filas = texto.split('\n').map(f => {
+        // Expresión regular para separar valores por comas respetando comillas
+        const regex = /(?:^|,)(?:"([^"]*)"|([^,]*))/g;
+        const campos = [];
+        let match;
+        while ((match = regex.exec(f))) {
+          campos.push((match[1] || match[2] || '').trim());
+        }
+        return campos;
+      });
+
       const data = [];
       for (let i = 1; i < filas.length; i++) {
         const row = filas[i];
-        if (row.length < 5) continue;
+        if (!row || row.length < 5) continue;
 
         data.push({
           id: i,
@@ -116,7 +124,7 @@
     }
 
     function poblarFiltroEmpresas() {
-      const empresas = [...new Set(datosOriginales.map(d => d.id_empresa))].filter(Boolean);
+      const empresas = [...new Set(datosOriginales.map(d => d.id_empresa))].filter(b => b && b !== '-');
       const select = document.getElementById('select-empresa');
       select.innerHTML = '<option value="TODOS">🌍 Todas las Empresas</option>';
       empresas.forEach(emp => {
@@ -164,55 +172,4 @@
         thead.innerHTML = `
           <th>Id_empresa</th>
           <th>razon_social_sec</th>
-          <th>Familias Agrupadas</th>
-          <th>nombre_familia</th>
-          <th>PPTO 2026</th>
-          <th>VTA + PROY</th>
-          <th>%PROY</th>
-          <th>VTA 25</th>
-          <th>VTA 24</th>
-          <th>VTA 23</th>
-          <th class="highlight">PPTO 2027</th>
-          <th>VTA 26VS27</th>
-          <th>VTA 26VS25</th>
-          <th>VTA 26VS24</th>
-          <th>VTA 26VS23</th>
-        `;
-        filasParaMostrar = datos;
-      } else {
-        const campoClave = vistaActual === 'razon' ? 'razon_social_sec' : 'familias_agrupadas';
-        thead.innerHTML = `
-          <th>Id_empresa</th>
-          <th>${vistaActual === 'razon' ? 'razon_social_sec' : 'Familias Agrupadas'}</th>
-          <th>PPTO 2026</th>
-          <th>VTA + PROY</th>
-          <th>%PROY</th>
-          <th>VTA 25</th>
-          <th>VTA 24</th>
-          <th>VTA 23</th>
-          <th class="highlight">PPTO 2027</th>
-          <th>VTA 26VS27</th>
-          <th>VTA 26VS25</th>
-          <th>VTA 26VS24</th>
-          <th>VTA 26VS23</th>
-        `;
-
-        const mapaAgrupado = {};
-        datos.forEach(item => {
-          const clave = item[campoClave] || 'SIN CLASIFICAR';
-          if (!mapaAgrupado[clave]) {
-            mapaAgrupado[clave] = {
-              id_empresa: item.id_empresa || '-',
-              agrupador: clave,
-              ppto_2026: 0,
-              vta_proy_26: 0,
-              vta_25: 0,
-              vta_24: 0,
-              vta_23: 0,
-              ppto_2027: 0
-            };
-          }
-          mapaAgrupado[clave].ppto_2026 += Number(item.ppto_2026 || 0);
-          mapaAgrupado[clave].vta_proy_26 += Number(item.vta_proy_26 || 0);
-          mapaAgrupado[clave].vta_25 += Number(item.vta_25 || 0);
-          map
+          <th>Familias Agrup
