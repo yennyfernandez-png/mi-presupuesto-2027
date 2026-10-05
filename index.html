@@ -385,4 +385,16 @@
 
       itemsGrupo.forEach(item => {
         if (vtaTotalGrupo > 0) {
-          item.ppto_2027 = Math.round((item.vta_
+          item.ppto_2027 = Math.round((item.vta_proy_26 / vtaTotalGrupo) * nuevoTotal);
+        } else {
+          item.ppto_2027 = Math.round(nuevoTotal / itemsGrupo.length);
+        }
+      });
+
+      filtrarYRenderizar();
+    }
+
+    cargarDesdeGoogleSheet();
+  </script>
+</body>
+</html>
