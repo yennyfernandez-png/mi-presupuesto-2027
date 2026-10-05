@@ -117,7 +117,7 @@
     <div class="menu-looker-container">
       <button class="btn-tres-puntos" onclick="toggleMenuLooker(event)">⋮</button>
       <div id="menu-dropdown-looker" class="dropdown-menu-looker">
-        <div class="dropdown-item" onclick="forzarActualizaciónMensual()">
+        <div class="dropdown-item" onclick="forzarActualizacionMensual()">
           <span>🔄</span> Actualizar Foto Mensual
         </div>
         <div class="dropdown-item" onclick="exportarAGoogleSheets()">
@@ -162,7 +162,7 @@
         <tr id="fila-totales" class="fila-totales"></tr>
       </thead>
       <tbody id="cuerpo-tabla">
-        <tr><td colspan="16" style="text-align:center; padding:20px;">Cargando datos...</td></tr>
+        <tr><td colspan="16" style="text-align:center; padding:20px;">Cargando foto mensual...</td></tr>
       </tbody>
     </table>
   </div>
@@ -183,7 +183,6 @@
   </div>
 
   <script>
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQg66Bztd1en9-FeRpYSCYw5EpCKENstLhX-JOfgW8Nyfv8woaFwE7H9dMsjwRKaansPEtXAkcVlAnp/pub?output=csv';
     const SPREADSHEET_ID = '1fxDlguyE0s8R4plUXabyMpWoizPrXpLBKe8qfqPOKEY';
     const GID = '1139127679';
 
@@ -200,14 +199,14 @@
     let chartFamiliasInst = null;
     let chartHistoricoInst = null;
 
-    // LÓGICA DE CONTROL DE FECHA PARA CONSULTA MENSUL 1 SOLA VEZ
+    // GESTIÓN DE FOTO MENSUAL
     function gestionarCargaMensual() {
       const fechaActual = new Date();
       const claveMesActual = `${fechaActual.getMonth() + 1}-${fechaActual.getFullYear()}`;
       const ultimoMesConsultado = localStorage.getItem('presupuesto_mes_consulta');
       const fotoGuardada = localStorage.getItem('presupuesto_cache_datos');
 
-      // Si ya se consultó en el mes actual y tenemos datos estáticos guardados
+      // Si ya consultó en el mes actual y tenemos datos estáticos guardados
       if (ultimoMesConsultado === claveMesActual && fotoGuardada) {
         try {
           datosOriginales = JSON.parse(fotoGuardada);
@@ -215,35 +214,27 @@
           actualizarEstado(`📷 Foto Mensual (${claveMesActual})`, "snapshot");
           return;
         } catch (e) {
-          console.warn("Fallo al leer foto mensual, consultando remoto...");
+          console.warn("Fallo al leer foto local, reintentando consulta...");
         }
       }
 
-      // Si es un nuevo mes o no hay datos, consultar 1 sola vez
+      // Si no hay foto del mes o es un mes nuevo, consultar a Google Sheets por JSONP
       consultarGoogleSheetsYGuardarFoto(claveMesActual);
     }
 
-    async function consultarGoogleSheetsYGuardarFoto(claveMes) {
-      actualizarEstado("🔄 Consultando Google Sheets (1/mes)...", "loading");
+    function consultarGoogleSheetsYGuardarFoto(claveMes) {
+      actualizarEstado("🔄 Tomando foto de Google Sheets...", "loading");
 
-      try {
-        const respuesta = await fetch(`${CSV_URL}&ts=${Date.now()}`);
-        const textoCSV = await respuesta.text();
+      // Remover script viejo si existe
+      const scriptViejo = document.getElementById('script-jsonp-gviz');
+      if (scriptViejo) scriptViejo.remove();
 
-        if (!textoCSV || textoCSV.includes("<!DOCTYPE html>")) {
-          throw new Error("Respuesta no válida");
-        }
-
-        const filas = parsearCSV(textoCSV);
-        procesarFilasCSV(filas);
-
-        // Marcar el mes consultado para no volver a llamar
-        if (claveMes) {
-          localStorage.setItem('presupuesto_mes_consulta', claveMes);
-        }
-        actualizarEstado("✅ Foto Mensual Actualizada", "snapshot");
-      } catch (error) {
-        console.warn("Error al consultar remoto:", error);
+      // JSONP Inyección directa para saltar bloqueos CORS
+      const script = document.createElement('script');
+      script.id = 'script-jsonp-gviz';
+      script.src = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?gid=${GID}&tqx=responseHandler:recibirDatosGViz&ts=${Date.now()}`;
+      
+      script.onerror = function() {
         const fotoGuardada = localStorage.getItem('presupuesto_cache_datos');
         if (fotoGuardada) {
           datosOriginales = JSON.parse(fotoGuardada);
@@ -252,83 +243,36 @@
         } else {
           document.getElementById('cuerpo-tabla').innerHTML = `
             <tr><td colspan="16" style="color:red; text-align:center; padding:20px;">
-              ⚠️️ Ocurrió un error al tomar la foto mensual.
+              ⚠️ Ocurrió una demora al conectar. <br>
+              <button class="btn-excel-action btn-excel-accept" style="margin-top:8px;" onclick="forzarActualizacionMensual()">Reintentar Conexión</button>
             </td></tr>`;
         }
-      }
+      };
+
+      document.body.appendChild(script);
     }
 
-    function forzarActualizaciónMensual() {
-      cerrarMenuLooker();
-      const fechaActual = new Date();
-      const claveMesActual = `${fechaActual.getMonth() + 1}-${fechaActual.getFullYear()}`;
-      consultarGoogleSheetsYGuardarFoto(claveMesActual);
-    }
+    window.recibirDatosGViz = function(jsonDatos) {
+      if (jsonDatos && jsonDatos.table) {
+        const data = procesarFilasGViz(jsonDatos.table);
 
-    function parsearCSV(texto) {
-      const lineas = texto.split(/\r\n|\n/);
-      const resultado = [];
-      for (let i = 0; i < lineas.length; i++) {
-        const linea = lineas[i].trim();
-        if (!linea) continue;
-
-        const celdas = [];
-        let dentroComillas = false;
-        let campo = '';
-
-        for (let j = 0; j < linea.length; j++) {
-          const char = linea[j];
-          if (char === '"') {
-            dentroComillas = !dentroComillas;
-          } else if (char === ',' && !dentroComillas) {
-            celdas.push(campo);
-            campo = '';
-          } else {
-            campo += char;
-          }
+        // Mantener modificaciones manuales de PPTO 2027 si existen
+        const edicionesLocales = localStorage.getItem('presupuesto_ediciones_2027');
+        if (edicionesLocales) {
+          const mapaEdiciones = JSON.parse(edicionesLocales);
+          data.forEach(d => {
+            if (mapaEdiciones[d.id] !== undefined) {
+              d.ppto_2027 = mapaEdiciones[d.id];
+            }
+          });
         }
-        celdas.push(campo);
-        resultado.push(celdas);
-      }
-      return resultado;
-    }
 
-    function procesarFilasCSV(filas) {
-      const data = [];
-      for (let i = 1; i < filas.length; i++) {
-        const c = filas[i];
-        if (!c || c.length < 5) continue;
+        datosOriginales = data;
+        
+        // Guardar foto estática en caché local
+        const fechaActual = new Date();
+        const claveMesActual = `${fechaActual.getMonth() + 1}-${fechaActual.getFullYear()}`;
+        localStorage.setItem('presupuesto_mes_consulta', claveMesActual);
+        localStorage.setItem('presupuesto_cache_datos', JSON.stringify(datosOriginales));
 
-        data.push({
-          id: i,
-          id_empresa: limpiarTexto(c[0]),
-          razon_social_sec: limpiarTexto(c[1]),
-          familias_agrupadas: limpiarTexto(c[2]),
-          nombre_familia: limpiarTexto(c[3]),
-          ppto_2026: limpiarNumero(c[4]),
-          vta_proy_26: limpiarNumero(c[5]),
-          porc_proy: c[6] || '0%',
-          vta_25: limpiarNumero(c[7]),
-          vta_24: limpiarNumero(c[8]),
-          vta_23: limpiarNumero(c[9]),
-          ppto_2027: limpiarNumero(c[10]) || 0
-        });
-      }
-
-      const edicionesLocales = localStorage.getItem('presupuesto_ediciones_2027');
-      if (edicionesLocales) {
-        const mapaEdiciones = JSON.parse(edicionesLocales);
-        data.forEach(d => {
-          if (mapaEdiciones[d.id] !== undefined) {
-            d.ppto_2027 = mapaEdiciones[d.id];
-          }
-        });
-      }
-
-      datosOriginales = data;
-      localStorage.setItem('presupuesto_cache_datos', JSON.stringify(datosOriginales));
-      filtrarYRenderizar();
-    }
-
-    function limpiarTexto(val) {
-      if (!val) return '-';
+        filtrarYRenderizar
