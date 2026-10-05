@@ -23,8 +23,8 @@
     .btn-group button.activo { background: #2b6cb0; color: white; }
 
     .status-badge { font-size: 10px; padding: 3px 8px; border-radius: 12px; background: #e2e8f0; color: #4a5568; font-weight: 600; }
+    .status-badge.snapshot { background: #c6f6d5; color: #22543d; }
     .status-badge.loading { background: #feebc8; color: #744210; }
-    .status-badge.ready { background: #c6f6d5; color: #22543d; }
 
     .btn-guardar { background: #2f855a; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: background 0.2s; }
     .btn-guardar:hover { background: #276749; }
@@ -33,24 +33,22 @@
     .btn-tres-puntos { background: transparent; border: 1px solid #cbd5e0; border-radius: 4px; padding: 4px 10px; font-size: 16px; font-weight: bold; cursor: pointer; color: #4a5568; }
     .btn-tres-puntos:hover { background: #edf2f7; color: #1a365d; }
 
-    .dropdown-menu-looker { display: none; position: absolute; right: 0; top: 32px; background: #ffffff; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 220px; z-index: 100; border: 1px solid #e2e8f0; padding: 4px 0; }
+    .dropdown-menu-looker { display: none; position: absolute; right: 0; top: 32px; background: #ffffff; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 230px; z-index: 100; border: 1px solid #e2e8f0; padding: 4px 0; }
     .dropdown-menu-looker.show { display: block; }
     .dropdown-item { padding: 8px 12px; font-size: 12px; color: #2d3748; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 500; }
     .dropdown-item:hover { background: #ebf8ff; color: #2b6cb0; }
     .dropdown-divider { height: 1px; background: #e2e8f0; margin: 4px 0; }
 
-    /* TABLA Y ENCABEZADOS ESTILO EXCEL */
     .tabla-container { width: 100%; overflow-x: auto; background: #fff; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); max-height: 75vh; overflow-y: auto; position: relative; }
     table { width: 100%; border-collapse: collapse; font-size: 10px; text-align: left; }
     
-    th { background: #2d3748; color: white; padding: 6px 4px; font-weight: 600; text-align: center; position: sticky; top: 0; z-index: 10; white-space: nowrap; user-select: none; }
+    th { background: #2d3748; color: white; padding: 6px 4px; font-weight: 600; text-align: center; position: sticky; top: 0; z-index: 10; white-space: nowrap; cursor: pointer; user-select: none; }
     th.highlight { background: #2b6cb0; }
     
     .th-container { display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 0 2px; }
     .btn-filter-excel { background: transparent; border: none; color: #cbd5e0; cursor: pointer; font-size: 10px; padding: 1px 3px; border-radius: 2px; }
     .btn-filter-excel:hover, .btn-filter-excel.activo { color: #fff; background: rgba(255,255,255,0.2); }
 
-    /* POPUP DE FILTRO ENCABEZADO TIPO EXCEL */
     .excel-filter-popup { display: none; position: absolute; background: #ffffff; color: #2d3748; border: 1px solid #cbd5e0; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); width: 250px; z-index: 500; font-size: 11px; padding: 8px; text-align: left; }
     .excel-filter-popup.show { display: block; }
 
@@ -80,4 +78,257 @@
     input.editable-ppto:focus { outline: 2px solid #3182ce; background: #ebf8ff; }
 
     .verde { color: #2f855a; font-weight: bold; }
-    .rojo { color: #e53e3e;
+    .rojo { color: #e53e3e; font-weight: bold; }
+
+    .badge-top { background: #c6f6d5; color: #22543d; font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: bold; margin-left: 4px; }
+    .badge-sec { background: #e2e8f0; color: #4a5568; font-size: 9px; padding: 1px 5px; border-radius: 3px; margin-left: 4px; }
+
+    .dashboard-container { display: none; gap: 15px; flex-wrap: wrap; }
+    .chart-card { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); flex: 1; min-width: 450px; }
+    .chart-card h3 { font-size: 13px; color: #1a365d; margin-top: 0; margin-bottom: 12px; border-bottom: 1px solid #edf2f7; padding-bottom: 6px; }
+  </style>
+</head>
+<body>
+
+  <div class="header-title">
+    <div>
+      <h1>📊 Presupuesto Comercial 2027</h1>
+      <p class="subhead">Modo Foto Mensual. Se consulta a Google Sheets 1 sola vez al mes.</p>
+    </div>
+    <span id="status-indicator" class="status-badge snapshot">📷 Foto Mensual</span>
+  </div>
+
+  <div class="tabs-main">
+    <button id="tab-tabla" class="tab-button activo" onclick="mostrarSeccion('tabla')">📋 Tabla Comercial</button>
+    <button id="tab-graficos" class="tab-button" onclick="mostrarSeccion('graficos')">📈 Gráficos y Dashboard</button>
+  </div>
+
+  <div class="panel-controles">
+    <div id="controles-vista-tabla" class="btn-group">
+      <button id="btn-detalle" class="activo" onclick="cambiarVista('detalle')">Ver Detallado</button>
+      <button id="btn-razon" onclick="cambiarVista('razon')">Por Razón Social (Pareto %)</button>
+      <button id="btn-familia" onclick="cambiarVista('familia')">Por Familia Agrupada (Pareto %)</button>
+    </div>
+
+    <button id="btn-limpiar-filtros" class="tab-button" style="background:#edf2f7; color:#2d3748;" onclick="limpiarTodosFiltrosExcel()">🧹 Limpiar Filtros Excel</button>
+
+    <button id="btn-guardar-cloud" class="btn-guardar" onclick="guardarLocalmente()">💾 Guardar Cambios</button>
+
+    <div class="menu-looker-container">
+      <button class="btn-tres-puntos" onclick="toggleMenuLooker(event)">⋮</button>
+      <div id="menu-dropdown-looker" class="dropdown-menu-looker">
+        <div class="dropdown-item" onclick="forzarActualizaciónMensual()">
+          <span>🔄</span> Actualizar Foto Mensual
+        </div>
+        <div class="dropdown-item" onclick="exportarAGoogleSheets()">
+          <span>📊</span> Abrir Google Sheet original
+        </div>
+        <div class="dropdown-item" onclick="descargarCSV()">
+          <span>📄</span> Exportar datos (CSV / Excel)
+        </div>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-item" onclick="copiarAlPortapapeles()">
+          <span>📋</span> Copiar al portapapeles
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- POPUP DE FILTRO EXCEL -->
+  <div id="popup-filtro-excel" class="excel-filter-popup">
+    <div class="filter-opt-item" onclick="ejecutarOrdenExcel('asc')">
+      <span id="label-ord-asc">🔼 Ordenar de A a Z</span>
+    </div>
+    <div class="filter-opt-item" onclick="ejecutarOrdenExcel('desc')">
+      <span id="label-ord-desc">🔽 Ordenar de Z a A</span>
+    </div>
+    <div class="filter-divider"></div>
+    <input type="text" id="popup-search-input" class="filter-search-box" placeholder="Buscar valores..." oninput="filtrarCheckboxPopup()">
+    <div class="filter-checkbox-item" style="border-bottom: 1px solid #e2e8f0; font-weight: bold;">
+      <input type="checkbox" id="chk-select-all" checked onchange="toggleSelectAllPopup(this)">
+      <label for="chk-select-all">(Seleccionar todo)</label>
+    </div>
+    <div id="popup-checkbox-container" class="filter-checkbox-list"></div>
+    <div class="filter-actions">
+      <button class="btn-excel-action btn-excel-cancel" onclick="cerrarPopupFiltroExcel()">Cancelar</button>
+      <button class="btn-excel-action btn-excel-accept" onclick="aplicarFiltroPopupExcel()">Aceptar</button>
+    </div>
+  </div>
+
+  <div id="seccion-tabla" class="tabla-container">
+    <table>
+      <thead>
+        <tr id="encabezado-tabla"></tr>
+        <tr id="fila-totales" class="fila-totales"></tr>
+      </thead>
+      <tbody id="cuerpo-tabla">
+        <tr><td colspan="16" style="text-align:center; padding:20px;">Cargando datos...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="seccion-graficos" class="dashboard-container">
+    <div class="chart-card">
+      <h3>🏆 Top 10 Clientes: VTA+PROY 26 vs PPTO 2027</h3>
+      <canvas id="chartClientes" height="220"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>📦 Presupuesto 2027 por Familia Agrupada</h3>
+      <canvas id="chartFamilias" height="220"></canvas>
+    </div>
+    <div class="chart-card" style="min-width: 100%;">
+      <h3>📈 Evolución Histórica Global de Ventas vs Presupuesto 2027</h3>
+      <canvas id="chartHistorico" height="120"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQg66Bztd1en9-FeRpYSCYw5EpCKENstLhX-JOfgW8Nyfv8woaFwE7H9dMsjwRKaansPEtXAkcVlAnp/pub?output=csv';
+    const SPREADSHEET_ID = '1fxDlguyE0s8R4plUXabyMpWoizPrXpLBKe8qfqPOKEY';
+    const GID = '1139127679';
+
+    let datosOriginales = [];
+    let vistaActual = 'detalle';
+    let seccionActiva = 'tabla';
+    let columnaOrden = 'vta_proy_26';
+    let ordenAscendente = false;
+
+    let filtrosExcelActivos = {};
+    let campoPopupActual = null;
+
+    let chartClientesInst = null;
+    let chartFamiliasInst = null;
+    let chartHistoricoInst = null;
+
+    // LÓGICA DE CONTROL DE FECHA PARA CONSULTA MENSUL 1 SOLA VEZ
+    function gestionarCargaMensual() {
+      const fechaActual = new Date();
+      const claveMesActual = `${fechaActual.getMonth() + 1}-${fechaActual.getFullYear()}`;
+      const ultimoMesConsultado = localStorage.getItem('presupuesto_mes_consulta');
+      const fotoGuardada = localStorage.getItem('presupuesto_cache_datos');
+
+      // Si ya se consultó en el mes actual y tenemos datos estáticos guardados
+      if (ultimoMesConsultado === claveMesActual && fotoGuardada) {
+        try {
+          datosOriginales = JSON.parse(fotoGuardada);
+          filtrarYRenderizar();
+          actualizarEstado(`📷 Foto Mensual (${claveMesActual})`, "snapshot");
+          return;
+        } catch (e) {
+          console.warn("Fallo al leer foto mensual, consultando remoto...");
+        }
+      }
+
+      // Si es un nuevo mes o no hay datos, consultar 1 sola vez
+      consultarGoogleSheetsYGuardarFoto(claveMesActual);
+    }
+
+    async function consultarGoogleSheetsYGuardarFoto(claveMes) {
+      actualizarEstado("🔄 Consultando Google Sheets (1/mes)...", "loading");
+
+      try {
+        const respuesta = await fetch(`${CSV_URL}&ts=${Date.now()}`);
+        const textoCSV = await respuesta.text();
+
+        if (!textoCSV || textoCSV.includes("<!DOCTYPE html>")) {
+          throw new Error("Respuesta no válida");
+        }
+
+        const filas = parsearCSV(textoCSV);
+        procesarFilasCSV(filas);
+
+        // Marcar el mes consultado para no volver a llamar
+        if (claveMes) {
+          localStorage.setItem('presupuesto_mes_consulta', claveMes);
+        }
+        actualizarEstado("✅ Foto Mensual Actualizada", "snapshot");
+      } catch (error) {
+        console.warn("Error al consultar remoto:", error);
+        const fotoGuardada = localStorage.getItem('presupuesto_cache_datos');
+        if (fotoGuardada) {
+          datosOriginales = JSON.parse(fotoGuardada);
+          filtrarYRenderizar();
+          actualizarEstado("📷 Foto Offline Guardada", "snapshot");
+        } else {
+          document.getElementById('cuerpo-tabla').innerHTML = `
+            <tr><td colspan="16" style="color:red; text-align:center; padding:20px;">
+              ⚠️️ Ocurrió un error al tomar la foto mensual.
+            </td></tr>`;
+        }
+      }
+    }
+
+    function forzarActualizaciónMensual() {
+      cerrarMenuLooker();
+      const fechaActual = new Date();
+      const claveMesActual = `${fechaActual.getMonth() + 1}-${fechaActual.getFullYear()}`;
+      consultarGoogleSheetsYGuardarFoto(claveMesActual);
+    }
+
+    function parsearCSV(texto) {
+      const lineas = texto.split(/\r\n|\n/);
+      const resultado = [];
+      for (let i = 0; i < lineas.length; i++) {
+        const linea = lineas[i].trim();
+        if (!linea) continue;
+
+        const celdas = [];
+        let dentroComillas = false;
+        let campo = '';
+
+        for (let j = 0; j < linea.length; j++) {
+          const char = linea[j];
+          if (char === '"') {
+            dentroComillas = !dentroComillas;
+          } else if (char === ',' && !dentroComillas) {
+            celdas.push(campo);
+            campo = '';
+          } else {
+            campo += char;
+          }
+        }
+        celdas.push(campo);
+        resultado.push(celdas);
+      }
+      return resultado;
+    }
+
+    function procesarFilasCSV(filas) {
+      const data = [];
+      for (let i = 1; i < filas.length; i++) {
+        const c = filas[i];
+        if (!c || c.length < 5) continue;
+
+        data.push({
+          id: i,
+          id_empresa: limpiarTexto(c[0]),
+          razon_social_sec: limpiarTexto(c[1]),
+          familias_agrupadas: limpiarTexto(c[2]),
+          nombre_familia: limpiarTexto(c[3]),
+          ppto_2026: limpiarNumero(c[4]),
+          vta_proy_26: limpiarNumero(c[5]),
+          porc_proy: c[6] || '0%',
+          vta_25: limpiarNumero(c[7]),
+          vta_24: limpiarNumero(c[8]),
+          vta_23: limpiarNumero(c[9]),
+          ppto_2027: limpiarNumero(c[10]) || 0
+        });
+      }
+
+      const edicionesLocales = localStorage.getItem('presupuesto_ediciones_2027');
+      if (edicionesLocales) {
+        const mapaEdiciones = JSON.parse(edicionesLocales);
+        data.forEach(d => {
+          if (mapaEdiciones[d.id] !== undefined) {
+            d.ppto_2027 = mapaEdiciones[d.id];
+          }
+        });
+      }
+
+      datosOriginales = data;
+      localStorage.setItem('presupuesto_cache_datos', JSON.stringify(datosOriginales));
+      filtrarYRenderizar();
+    }
+
+    function limpiarTexto(val) {
+      if (!val) return '-';
