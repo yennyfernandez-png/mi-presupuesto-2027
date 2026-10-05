@@ -37,7 +37,7 @@
     .tabla-container { width: 100%; overflow-x: auto; background: #fff; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); max-height: 75vh; overflow-y: auto; position: relative; }
     table { width: 100%; border-collapse: collapse; font-size: 10px; text-align: left; }
     
-    th { background: #2d3748; color: white; padding: 6px 4px; font-weight: 600; text-align: center; position: sticky; top: 0; z-index: 10; white-space: nowrap; user-select: none; }
+    th { background: #2d3748; color: white; padding: 6px 4px; font-weight: 600; text-align: center; position: sticky; top: 0; z-index: 10; white-space: nowrap; cursor: pointer; user-select: none; }
     th.highlight { background: #2b6cb0; }
     
     .th-container { display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 0 2px; }
@@ -75,7 +75,6 @@
     .verde { color: #2f855a; font-weight: bold; }
     .rojo { color: #e53e3e; font-weight: bold; }
 
-    /* Estilos para Alertas de Desviación */
     .alerta-cuadre { display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
     .alerta-cuadre.ok { background: #c6f6d5; color: #22543d; }
     .alerta-cuadre.exceso { background: #fed7d7; color: #9b2c2c; }
@@ -95,10 +94,9 @@
       <h1>📊 Presupuesto Comercial 2027</h1>
       <p class="subhead">Pestaña 1: Meta Macro por Familia | Pestaña 2: Detalle Cliente con Alerta de Cuadre | Pestaña 3: Gráficos</p>
     </div>
-    <span id="status-indicator" class="status-badge">⚡ Carga Lista</span>
+    <span id="status-indicator" class="status-badge">⚡ Listo</span>
   </div>
 
-  <!-- 3 PESTAÑAS PRINCIPALES -->
   <div class="tabs-main">
     <button id="tab-familia-macro" class="tab-button activo" onclick="mostrarPestana('familia-macro')">📦 1. Presupuesto Macro por Familia Agrupada</button>
     <button id="tab-detalle-micro" class="tab-button" onclick="mostrarPestana('detalle-micro')">🏢 2. Detalle (País - Cliente - Familia) + Alerta Cuadre</button>
@@ -152,7 +150,6 @@
     </div>
   </div>
 
-  <!-- SECCIÓN TABLA -->
   <div id="seccion-tabla" class="tabla-container">
     <table>
       <thead>
@@ -165,7 +162,6 @@
     </table>
   </div>
 
-  <!-- SECCIÓN DASHBOARD / GRÁFICOS (ALIMENTADO DE LA PESTAÑA 2 DETALLADA) -->
   <div id="seccion-graficos" class="dashboard-container">
     <div class="chart-card">
       <h3>🏆 Top 10 Clientes (Basado en Pestaña 2 Detallada)</h3>
@@ -182,10 +178,17 @@
   </div>
 
   <script>
-    let datosOriginales = [];
-    let metasMacroFamilia = {}; // Almacena las metas fijadas en la Pestaña 1 { 'AUTOMATIZACION': 500000 }
-    
-    let pestanaActiva = 'familia-macro'; // 'familia-macro', 'detalle-micro', 'graficos'
+    // DATOS DE RESPALDO AUTO-ARRANQUE
+    let datosOriginales = [
+      { id: 1, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "SERVICIOS PETROLEROS SOCIEDAD DE", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROLADORES Y REDES", ppto_2026: 0, vta_proy_26: 1523.28, porc_proy: "0%", vta_25: 0, vta_24: 0, vta_23: 0, ppto_2027: 0 },
+      { id: 2, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "AGRIPAC BOLIVIANA AGROINDUSTRIAL", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROL Y SOFTWARE DE VISUALIZACION", ppto_2026: 0, vta_proy_26: 0, porc_proy: "0%", vta_25: 1844.15, vta_24: 2016.2, vta_23: 0, ppto_2027: 0 },
+      { id: 3, id_empresa: "PRECISION BOLIVIA", razon_social_sec: "AGRIPAC BOLIVIANA AGROINDUSTRIAL", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROLADORES Y REDES", ppto_2026: 0, vta_proy_26: 0, porc_proy: "0%", vta_25: 15034.13, vta_24: 0, vta_23: 0, ppto_2027: 0 },
+      { id: 4, id_empresa: "PRECISION CHILE", razon_social_sec: "MINERA ESCONDIDA LTDA", familias_agrupadas: "CONTROL INDUSTRIAL", nombre_familia: "CONTROL INDUSTRIAL", ppto_2026: 120000, vta_proy_26: 145000, porc_proy: "120%", vta_25: 130000, vta_24: 110000, vta_23: 95000, ppto_2027: 0 },
+      { id: 5, id_empresa: "PRECISION ECUADOR", razon_social_sec: "HOLCIM ECUADOR S.A.", familias_agrupadas: "VARIADORES DE FRECUENCIA", nombre_familia: "VARIADORES DE FRECUENCIA", ppto_2026: 85000, vta_proy_26: 92000, porc_proy: "108%", vta_25: 88000, vta_24: 79000, vta_23: 65000, ppto_2027: 0 }
+    ];
+
+    let metasMacroFamilia = {};
+    let pestanaActiva = 'familia-macro';
     let columnaOrden = 'vta_proy_26';
     let ordenAscendente = false;
 
@@ -196,33 +199,44 @@
     let chartFamiliasInst = null;
     let chartHistoricoInst = null;
 
-    async function iniciarAplicacion() {
-      try {
-        const res = await fetch('datos_2027.csv?ts=' + Date.now());
-        if (res.ok) {
-          const texto = await res.text();
+    function iniciarAplicacion() {
+      // 1. Cargar memoria local guardada
+      const cacheGuardado = localStorage.getItem('presupuesto_cache_datos');
+      const edicionesLocales = localStorage.getItem('presupuesto_ediciones_2027');
+      const metasGuardadas = localStorage.getItem('presupuesto_metas_macro');
+
+      if (cacheGuardado) {
+        try { datosOriginales = JSON.parse(cacheGuardado); } catch(e){}
+      }
+
+      if (edicionesLocales) {
+        try {
+          const mapaEdiciones = JSON.parse(edicionesLocales);
+          datosOriginales.forEach(function(d) {
+            if (mapaEdiciones[d.id] !== undefined) d.ppto_2027 = mapaEdiciones[d.id];
+          });
+        } catch(e){}
+      }
+
+      if (metasGuardadas) {
+        try { metasMacroFamilia = JSON.parse(metasGuardadas); } catch(e){}
+      }
+
+      filtrarYRenderizar();
+
+      // 2. Intentar leer en segundo plano el CSV completo sin congelar la app
+      fetch('datos_2027.csv?ts=' + Date.now())
+        .then(function(res) { if (res.ok) return res.text(); else throw new Error(); })
+        .then(function(texto) {
           const filas = parsearCSV(texto);
           if (filas.length > 1) {
             procesarFilasCSV(filas);
-            actualizarEstado("✅ Cargado completo", "status-badge");
-            return;
+            actualizarEstado("✅ Cargado completo (" + (filas.length - 1) + " filas)", "status-badge");
           }
-        }
-      } catch (e) {
-        console.warn("Buscando en memoria local...");
-      }
-
-      const cacheGuardado = localStorage.getItem('presupuesto_cache_datos');
-      if (cacheGuardado) {
-        try {
-          datosOriginales = JSON.parse(cacheGuardado);
-          filtrarYRenderizar();
-          actualizarEstado("📷 Cargado de memoria local", "status-badge");
-          return;
-        } catch (e) {}
-      }
-
-      document.getElementById('cuerpo-tabla').innerHTML = '<tr><td colspan="16" style="text-align:center; padding:20px;">Cargue su archivo con el botón <strong>📁 Cargar CSV</strong>.</td></tr>';
+        })
+        .catch(function() {
+          actualizarEstado("⚡ Carga Instantánea (Lista)", "status-badge");
+        });
     }
 
     function cargarDesdeArchivoLocal(input) {
@@ -294,22 +308,13 @@
         try {
           const mapaEdiciones = JSON.parse(edicionesLocales);
           data.forEach(function(d) {
-            if (mapaEdiciones[d.id] !== undefined) {
-              d.ppto_2027 = mapaEdiciones[d.id];
-            }
+            if (mapaEdiciones[d.id] !== undefined) d.ppto_2027 = mapaEdiciones[d.id];
           });
         } catch(e) {}
       }
 
-      // Cargar metas macro guardadas
-      const metasGuardadas = localStorage.getItem('presupuesto_metas_macro');
-      if (metasGuardadas) {
-        try { metasMacroFamilia = JSON.parse(metasGuardadas); } catch(e){}
-      }
-
       datosOriginales = data;
       localStorage.setItem('presupuesto_cache_datos', JSON.stringify(datosOriginales));
-      filtrosExcelActivos = {};
       filtrarYRenderizar();
     }
 
@@ -506,7 +511,6 @@
       });
     }
 
-    // PESTAÑA 1: CONSTRUIR AGRUPACIÓN MACRO POR FAMILIA
     function construirDatosMacroFamilia() {
       const mapaAgrupado = {};
 
@@ -563,3 +567,41 @@
       }
 
       if (datos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="16" style="padding:20px; text-align:center;">No hay registros disponibles. Presione <strong>🧹 Limpiar Filtros Excel</strong>.</td></tr>';
+        trTotales.innerHTML = '';
+        return;
+      }
+
+      function crearHeaderHTML(label, campo, esNum) {
+        const tieneFiltro = filtrosExcelActivos[campo] !== undefined;
+        const claseBtn = tieneFiltro ? "btn-filter-excel activo" : "btn-filter-excel";
+        return '<th><div class="th-container"><span>' + label + '</span><button class="' + claseBtn + '" onclick="abrirPopupFiltroExcel(event, \'' + campo + '\', ' + esNum + ')">🔻</button></div></th>';
+      }
+
+      let filasParaMostrar = [...datos];
+
+      if (pestanaActiva === 'familia-macro') {
+        const totalPpto26 = datos.reduce((s, d) => s + (d.ppto_2026 || 0), 0);
+        const totalVta26  = datos.reduce((s, d) => s + (d.vta_proy_26 || 0), 0);
+        const totalVta25  = datos.reduce((s, d) => s + (d.vta_25 || 0), 0);
+        const totalVta24  = datos.reduce((s, d) => s + (d.vta_24 || 0), 0);
+        const totalVta23  = datos.reduce((s, d) => s + (d.vta_23 || 0), 0);
+        const totalPpto27Macro = datos.reduce((s, d) => s + (d.ppto_2027_macro || 0), 0);
+
+        thead.innerHTML = crearHeaderHTML('Id_empresa', 'id_empresa', false) +
+          crearHeaderHTML('Familia Agrupada (Macro)', 'familias_agrupadas', false) +
+          crearHeaderHTML('% Part. Venta', 'pctPart', true) +
+          crearHeaderHTML('% Acumulado', 'pctAcum', true) +
+          crearHeaderHTML('PPTO 2026', 'ppto_2026', true) +
+          crearHeaderHTML('VTA + PROY', 'vta_proy_26', true) +
+          crearHeaderHTML('VTA 25', 'vta_25', true) +
+          crearHeaderHTML('VTA 24', 'vta_24', true) +
+          crearHeaderHTML('VTA 23', 'vta_23', true) +
+          crearHeaderHTML('PPTO 2027 MACRO (META)', 'ppto_2027_macro', true) +
+          '<th>VTA 26VS27 MACRO</th>';
+
+        trTotales.innerHTML = '<td class="texto" colspan="2">TOTAL META MACRO</td>' +
+          '<td>100.0%</td><td>100.0%</td>' +
+          '<td>$' + formatearNumeroVisual(totalPpto26) + '</td>' +
+          '<td>$' + formatearNumeroVisual(totalVta26) + '</td>' +
+          '
