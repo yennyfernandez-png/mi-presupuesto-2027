@@ -5,49 +5,42 @@
   <title>Presupuesto Comercial 2027</title>
   <style>
     * { box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; background: #f0f4f8; margin: 0; color: #2d3748; }
-    h1 { color: #1a365d; font-size: 20px; margin: 0 0 5px 0; }
-    .subhead { color: #4a5568; font-size: 12px; margin-bottom: 12px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 12px; background: #f0f4f8; margin: 0; color: #2d3748; }
+    h1 { color: #1a365d; font-size: 18px; margin: 0 0 4px 0; }
+    .subhead { color: #4a5568; font-size: 11px; margin-bottom: 10px; }
     
-    .panel-controles { display: flex; gap: 15px; align-items: center; background: #fff; padding: 10px 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 12px; flex-wrap: wrap; }
-    .filtro-item { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: bold; }
-    select { padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e0; background: #f8fafc; font-size: 13px; }
+    .panel-controles { display: flex; gap: 15px; align-items: center; background: #fff; padding: 8px 12px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 10px; flex-wrap: wrap; }
+    .filtro-item { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: bold; }
+    select { padding: 4px 8px; border-radius: 4px; border: 1px solid #cbd5e0; background: #f8fafc; font-size: 12px; }
     
-    .btn-group { display: flex; background: #edf2f7; border-radius: 6px; padding: 2px; }
-    .btn-group button { border: none; background: transparent; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 4px; color: #4a5568; }
+    .btn-group { display: flex; background: #edf2f7; border-radius: 4px; padding: 2px; }
+    .btn-group button { border: none; background: transparent; padding: 5px 10px; font-size: 11px; font-weight: 600; cursor: pointer; border-radius: 3px; color: #4a5568; }
     .btn-group button.activo { background: #2b6cb0; color: white; }
 
-    .tabla-container { width: 100%; overflow-x: auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); max-height: 80vh; overflow-y: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; table-layout: fixed; }
+    .tabla-container { width: 100%; overflow-x: auto; background: #fff; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); max-height: 82vh; overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 10px; text-align: left; }
     
-    th { background: #2d3748; color: white; padding: 6px 4px; font-weight: 600; text-align: center; position: sticky; top: 0; z-index: 10; font-size: 10px; }
+    th { background: #2d3748; color: white; padding: 6px 4px; font-weight: 600; text-align: center; position: sticky; top: 0; z-index: 10; white-space: nowrap; }
     th.highlight { background: #2b6cb0; }
-    td { padding: 5px 4px; border-bottom: 1px solid #e2e8f0; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    td { padding: 4px 4px; border-bottom: 1px solid #e2e8f0; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    td.texto { text-align: left; }
     tr:hover { background-color: #f7fafc; }
 
-    .col-empresa { width: 9%; }
-    .col-razon { width: 15%; text-align: left; }
-    .col-fam-agrup { width: 11%; text-align: left; }
-    .col-fam-det { width: 11%; text-align: left; }
-    .col-num { width: 6%; text-align: right; }
-    .col-ppto { width: 7%; background: #ebf8ff; }
-    .col-var { width: 5.5%; text-align: right; font-weight: bold; }
-
-    input.editable-ppto { width: 100%; padding: 3px; font-weight: bold; border: 1px solid #3182ce; border-radius: 4px; background: #fff; text-align: right; font-size: 11px; }
-    .verde { color: #2f855a; }
-    .rojo { color: #e53e3e; }
+    input.editable-ppto { width: 75px; padding: 2px 4px; font-weight: bold; border: 1px solid #3182ce; border-radius: 3px; background: #ebf8ff; text-align: right; font-size: 10px; }
+    .verde { color: #2f855a; font-weight: bold; }
+    .rojo { color: #e53e3e; font-weight: bold; }
   </style>
 </head>
 <body>
 
   <h1>📊 Presupuesto Comercial 2027</h1>
-  <p class="subhead">Modifica <strong>PPTO 2027</strong> para recalcular dinámicamente las variaciones de venta.</p>
+  <p class="subhead">Modifica <strong>PPTO 2027</strong> para recalcular dinámicamente las variaciones históricas y proyectadas.</p>
 
   <div class="panel-controles">
     <div class="filtro-item">
-      <span>Filtrar País/Empresa:</span>
+      <span>Filtrar Empresa/País:</span>
       <select id="select-empresa" onchange="filtrarYRenderizar()">
-        <option value="TODOS">🌍 Todos los Países</option>
+        <option value="TODOS">🌍 Todas las Empresas</option>
       </select>
     </div>
 
@@ -64,7 +57,7 @@
         <tr id="encabezado-tabla"></tr>
       </thead>
       <tbody id="cuerpo-tabla">
-        <tr><td colspan="15">Cargando datos desde Google Sheets...</td></tr>
+        <tr><td colspan="15" style="text-align:center; padding:20px;">Cargando datos desde Google Sheets...</td></tr>
       </tbody>
     </table>
   </div>
@@ -87,7 +80,7 @@
         filtrarYRenderizar();
       } catch (error) {
         console.error("Error al leer Google Sheet:", error);
-        document.getElementById('cuerpo-tabla').innerHTML = `<tr><td colspan="15" style="color:red; padding:20px;">Error al cargar datos. Asegúrate de que la hoja de Google Sheet esté pública.</td></tr>`;
+        document.getElementById('cuerpo-tabla').innerHTML = `<tr><td colspan="15" style="color:red; padding:20px; text-align:center;">Error al cargar datos. Verifica que la hoja de Google Sheet sea pública.</td></tr>`;
       }
     }
 
@@ -106,6 +99,7 @@
           nombre_familia: row[3] || '-',
           ppto_2026: limpiarNumero(row[4]),
           vta_proy_26: limpiarNumero(row[5]),
+          porc_proy: row[6] || '0%',
           vta_25: limpiarNumero(row[7]),
           vta_24: limpiarNumero(row[8]),
           vta_23: limpiarNumero(row[9]),
@@ -124,7 +118,7 @@
     function poblarFiltroEmpresas() {
       const empresas = [...new Set(datosOriginales.map(d => d.id_empresa))].filter(Boolean);
       const select = document.getElementById('select-empresa');
-      select.innerHTML = '<option value="TODOS">🌍 Todos los Países/Empresas</option>';
+      select.innerHTML = '<option value="TODOS">🌍 Todas las Empresas</option>';
       empresas.forEach(emp => {
         select.innerHTML += `<option value="${emp}">${emp}</option>`;
       });
@@ -139,8 +133,7 @@
       filtrarYRenderizar();
     }
 
-    // Variación con la fórmula (vta / base) - 1
-    function calcVarFormula(vta, base) {
+    function calcVar(vta, base) {
       if (!base || base === 0) return 0;
       return (((vta / base) - 1) * 100).toFixed(0);
     }
@@ -161,7 +154,7 @@
       const tbody = document.getElementById('cuerpo-tabla');
 
       if (datos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="15" style="padding:20px;">No hay registros para este filtro.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="15" style="padding:20px; text-align:center;">No hay registros disponibles.</td></tr>';
         return;
       }
 
@@ -169,35 +162,39 @@
 
       if (vistaActual === 'detalle') {
         thead.innerHTML = `
-          <th class="col-empresa">Empresa/País</th>
-          <th class="col-razon">Razón Social</th>
-          <th class="col-fam-agrup">Familia Agrup.</th>
-          <th class="col-fam-det">Detalle Familia</th>
-          <th class="col-num">PROY 26</th>
-          <th class="col-num">VTA 25</th>
-          <th class="col-num">VTA 24</th>
-          <th class="col-num">VTA 23</th>
-          <th class="col-ppto highlight">PPTO 27</th>
-          <th class="col-var">26/27-1</th>
-          <th class="col-var">26/25-1</th>
-          <th class="col-var">26/24-1</th>
-          <th class="col-var">26/23-1</th>
+          <th>Id_empresa</th>
+          <th>razon_social_sec</th>
+          <th>Familias Agrupadas</th>
+          <th>nombre_familia</th>
+          <th>PPTO 2026</th>
+          <th>VTA + PROY</th>
+          <th>%PROY</th>
+          <th>VTA 25</th>
+          <th>VTA 24</th>
+          <th>VTA 23</th>
+          <th class="highlight">PPTO 2027</th>
+          <th>VTA 26VS27</th>
+          <th>VTA 26VS25</th>
+          <th>VTA 26VS24</th>
+          <th>VTA 26VS23</th>
         `;
         filasParaMostrar = datos;
       } else {
         const campoClave = vistaActual === 'razon' ? 'razon_social_sec' : 'familias_agrupadas';
         thead.innerHTML = `
-          <th class="col-empresa">Empresa/País</th>
-          <th class="col-razon">${vistaActual === 'razon' ? 'Razón Social' : 'Familia Agrupada'}</th>
-          <th class="col-num">PROY 26</th>
-          <th class="col-num">VTA 25</th>
-          <th class="col-num">VTA 24</th>
-          <th class="col-num">VTA 23</th>
-          <th class="col-ppto highlight">PPTO 27</th>
-          <th class="col-var">26/27-1</th>
-          <th class="col-var">26/25-1</th>
-          <th class="col-var">26/24-1</th>
-          <th class="col-var">26/23-1</th>
+          <th>Id_empresa</th>
+          <th>${vistaActual === 'razon' ? 'razon_social_sec' : 'Familias Agrupadas'}</th>
+          <th>PPTO 2026</th>
+          <th>VTA + PROY</th>
+          <th>%PROY</th>
+          <th>VTA 25</th>
+          <th>VTA 24</th>
+          <th>VTA 23</th>
+          <th class="highlight">PPTO 2027</th>
+          <th>VTA 26VS27</th>
+          <th>VTA 26VS25</th>
+          <th>VTA 26VS24</th>
+          <th>VTA 26VS23</th>
         `;
 
         const mapaAgrupado = {};
@@ -207,6 +204,7 @@
             mapaAgrupado[clave] = {
               id_empresa: item.id_empresa || '-',
               agrupador: clave,
+              ppto_2026: 0,
               vta_proy_26: 0,
               vta_25: 0,
               vta_24: 0,
@@ -214,74 +212,7 @@
               ppto_2027: 0
             };
           }
+          mapaAgrupado[clave].ppto_2026 += Number(item.ppto_2026 || 0);
           mapaAgrupado[clave].vta_proy_26 += Number(item.vta_proy_26 || 0);
           mapaAgrupado[clave].vta_25 += Number(item.vta_25 || 0);
-          mapaAgrupado[clave].vta_24 += Number(item.vta_24 || 0);
-          mapaAgrupado[clave].vta_23 += Number(item.vta_23 || 0);
-          mapaAgrupado[clave].ppto_2027 += Number(item.ppto_2027 || 0);
-        });
-
-        filasParaMostrar = Object.values(mapaAgrupado);
-      }
-
-      tbody.innerHTML = '';
-      filasParaMostrar.forEach(row => {
-        const ppto27 = Number(row.ppto_2027 || 0);
-        const v26 = Number(row.vta_proy_26 || 0);
-
-        // Fórmulas exactas: 26/27-1, 26/25-1, 26/24-1, 26/23-1
-        const var26_27 = calcVarFormula(v26, ppto27);
-        const var26_25 = calcVarFormula(v26, row.vta_25);
-        const var26_24 = calcVarFormula(v26, row.vta_24);
-        const var26_23 = calcVarFormula(v26, row.vta_23);
-
-        const tr = document.createElement('tr');
-        if (vistaActual === 'detalle') {
-          tr.innerHTML = `
-            <td class="col-empresa" title="${row.id_empresa}">${row.id_empresa}</td>
-            <td class="col-razon" title="${row.razon_social_sec}">${row.razon_social_sec}</td>
-            <td class="col-fam-agrup" title="${row.familias_agrupadas}">${row.familias_agrupadas}</td>
-            <td class="col-fam-det" title="${row.nombre_familia}">${row.nombre_familia}</td>
-            <td class="col-num">$${Math.round(v26).toLocaleString()}</td>
-            <td class="col-num">$${Math.round(row.vta_25).toLocaleString()}</td>
-            <td class="col-num">$${Math.round(row.vta_24).toLocaleString()}</td>
-            <td class="col-num">$${Math.round(row.vta_23).toLocaleString()}</td>
-            <td class="col-ppto">
-              <input type="number" class="editable-ppto" value="${ppto27}" onchange="actualizarPpto(${row.id}, this.value)">
-            </td>
-            <td class="col-var ${var26_27 >= 0 ? 'verde' : 'rojo'}">${var26_27}%</td>
-            <td class="col-var ${var26_25 >= 0 ? 'verde' : 'rojo'}">${var26_25}%</td>
-            <td class="col-var ${var26_24 >= 0 ? 'verde' : 'rojo'}">${var26_24}%</td>
-            <td class="col-var ${var26_23 >= 0 ? 'verde' : 'rojo'}">${var26_23}%</td>
-          `;
-        } else {
-          tr.innerHTML = `
-            <td class="col-empresa">${row.id_empresa}</td>
-            <td class="col-razon" title="${row.agrupador}"><strong>${row.agrupador}</strong></td>
-            <td class="col-num">$${Math.round(v26).toLocaleString()}</td>
-            <td class="col-num">$${Math.round(row.vta_25).toLocaleString()}</td>
-            <td class="col-num">$${Math.round(row.vta_24).toLocaleString()}</td>
-            <td class="col-num">$${Math.round(row.vta_23).toLocaleString()}</td>
-            <td class="col-ppto" style="font-weight:bold;">$${Math.round(ppto27).toLocaleString()}</td>
-            <td class="col-var ${var26_27 >= 0 ? 'verde' : 'rojo'}">${var26_27}%</td>
-            <td class="col-var ${var26_25 >= 0 ? 'verde' : 'rojo'}">${var26_25}%</td>
-            <td class="col-var ${var26_24 >= 0 ? 'verde' : 'rojo'}">${var26_24}%</td>
-            <td class="col-var ${var26_23 >= 0 ? 'verde' : 'rojo'}">${var26_23}%</td>
-          `;
-        }
-        tbody.appendChild(tr);
-      });
-    }
-
-    function actualizarPpto(id, valor) {
-      const nuevoValor = parseFloat(valor) || 0;
-      const item = datosOriginales.find(d => d.id === id);
-      if (item) item.ppto_2027 = nuevoValor;
-
-      filtrarYRenderizar();
-    }
-
-    cargarDesdeGoogleSheet();
-  </script>
-</body>
-</html>
+          map
