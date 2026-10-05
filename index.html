@@ -11,13 +11,14 @@
     h1 { color: #1a365d; font-size: 18px; margin: 0; }
     .subhead { color: #4a5568; font-size: 11px; margin: 0; }
 
-    /* Tarjetas KPI Superiores */
-    .kpi-container { display: flex; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
-    .kpi-card { background: #fff; border-radius: 6px; padding: 8px 14px; flex: 1; min-width: 160px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #2b6cb0; }
+    /* Tarjetas KPI Superiores para cada categoría */
+    .kpi-container { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+    .kpi-card { background: #fff; border-radius: 6px; padding: 6px 10px; flex: 1; min-width: 120px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 3px solid #4a5568; }
+    .kpi-card.destacado { border-left-color: #2b6cb0; background: #ebf8ff; }
     .kpi-card.verde { border-left-color: #2f855a; }
-    .kpi-title { font-size: 10px; text-transform: uppercase; color: #718096; font-weight: bold; margin-bottom: 2px; }
-    .kpi-value { font-size: 16px; font-weight: bold; color: #1a202c; }
-    .kpi-sub { font-size: 10px; color: #4a5568; font-weight: 600; }
+    .kpi-title { font-size: 9px; text-transform: uppercase; color: #718096; font-weight: bold; margin-bottom: 2px; white-space: nowrap; }
+    .kpi-value { font-size: 14px; font-weight: bold; color: #1a202c; white-space: nowrap; }
+    .kpi-sub { font-size: 9px; color: #4a5568; font-weight: 600; white-space: nowrap; }
 
     .panel-controles { display: flex; gap: 15px; align-items: center; background: #fff; padding: 8px 12px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 10px; flex-wrap: wrap; }
     .filtro-item { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: bold; }
@@ -27,7 +28,7 @@
     .btn-group button { border: none; background: transparent; padding: 5px 10px; font-size: 11px; font-weight: 600; cursor: pointer; border-radius: 3px; color: #4a5568; }
     .btn-group button.activo { background: #2b6cb0; color: white; }
 
-    .tabla-container { width: 100%; overflow-x: auto; background: #fff; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); max-height: 75vh; overflow-y: auto; }
+    .tabla-container { width: 100%; overflow-x: auto; background: #fff; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); max-height: 72vh; overflow-y: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 10px; text-align: left; }
     
     th { background: #2d3748; color: white; padding: 6px 4px; font-weight: 600; text-align: center; position: sticky; top: 0; z-index: 10; white-space: nowrap; }
@@ -50,24 +51,40 @@
   <div class="header-title">
     <div>
       <h1>📊 Presupuesto Comercial 2027</h1>
-      <p class="subhead">Edita los montos en <strong>PPTO 2027</strong> para actualizar las variaciones y el total general al instante.</p>
+      <p class="subhead">Totales acumulados por categoría a partir de PPTO 2026. Edita los montos en <strong>PPTO 2027</strong> para actualizar.</p>
     </div>
   </div>
 
-  <!-- KPI TOTALES SUPERIORES -->
+  <!-- KPI TOTALES SUPERIORES DESDE PPTO 2026 EN ADELANTE -->
   <div class="kpi-container">
     <div class="kpi-card">
-      <div class="kpi-title">VTA + PROY 2026 TOTAL</div>
+      <div class="kpi-title">PPTO 2026</div>
+      <div class="kpi-value" id="kpi-ppto26">$0</div>
+    </div>
+    <div class="kpi-card destacado">
+      <div class="kpi-title">VTA + PROY 26</div>
       <div class="kpi-value" id="kpi-vta26">$0</div>
     </div>
+    <div class="kpi-card">
+      <div class="kpi-title">VTA 25</div>
+      <div class="kpi-value" id="kpi-vta25">$0</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">VTA 24</div>
+      <div class="kpi-value" id="kpi-vta24">$0</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">VTA 23</div>
+      <div class="kpi-value" id="kpi-vta23">$0</div>
+    </div>
     <div class="kpi-card verde">
-      <div class="kpi-title">PPTO 2027 TOTAL (EDITABLE)</div>
+      <div class="kpi-title">PPTO 2027 (EDITABLE)</div>
       <div class="kpi-value" id="kpi-ppto27">$0</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-title">VARIACIÓN GLOBAL (26VS27)</div>
+      <div class="kpi-title">VAR 26VS27</div>
       <div class="kpi-value" id="kpi-var-global">0%</div>
-      <div class="kpi-sub" id="kpi-dif-monto">$0 de diferencia</div>
+      <div class="kpi-sub" id="kpi-dif-monto">$0 dif</div>
     </div>
   </div>
 
@@ -172,4 +189,18 @@
       vistaActual = modo;
       document.querySelectorAll('.btn-group button').forEach(b => b.classList.remove('activo'));
       if (modo === 'detalle') document.getElementById('btn-detalle').classList.add('activo');
-      if (modo === 'razon')
+      if (modo === 'razon') document.getElementById('btn-razon').classList.add('activo');
+      if (modo === 'familia') document.getElementById('btn-familia').classList.add('activo');
+      filtrarYRenderizar();
+    }
+
+    function calcVar(vta, base) {
+      if (!base || base === 0) return 0;
+      return (((vta / base) - 1) * 100).toFixed(0);
+    }
+
+    function actualizarKPISuperiores(datos) {
+      const totalPpto26 = datos.reduce((sum, d) => sum + (d.ppto_2026 || 0), 0);
+      const totalVta26  = datos.reduce((sum, d) => sum + (d.vta_proy_26 || 0), 0);
+      const totalVta25  = datos.reduce((sum, d) => sum + (d.vta_25 || 0), 0);
+      const totalVta24
