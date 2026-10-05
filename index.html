@@ -6,9 +6,19 @@
   <style>
     * { box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 12px; background: #f0f4f8; margin: 0; color: #2d3748; }
-    h1 { color: #1a365d; font-size: 18px; margin: 0 0 4px 0; }
-    .subhead { color: #4a5568; font-size: 11px; margin-bottom: 10px; }
     
+    .header-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    h1 { color: #1a365d; font-size: 18px; margin: 0; }
+    .subhead { color: #4a5568; font-size: 11px; margin: 0; }
+
+    /* Tarjetas KPI Superiores */
+    .kpi-container { display: flex; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+    .kpi-card { background: #fff; border-radius: 6px; padding: 8px 14px; flex: 1; min-width: 160px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #2b6cb0; }
+    .kpi-card.verde { border-left-color: #2f855a; }
+    .kpi-title { font-size: 10px; text-transform: uppercase; color: #718096; font-weight: bold; margin-bottom: 2px; }
+    .kpi-value { font-size: 16px; font-weight: bold; color: #1a202c; }
+    .kpi-sub { font-size: 10px; color: #4a5568; font-weight: 600; }
+
     .panel-controles { display: flex; gap: 15px; align-items: center; background: #fff; padding: 8px 12px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 10px; flex-wrap: wrap; }
     .filtro-item { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: bold; }
     select { padding: 4px 8px; border-radius: 4px; border: 1px solid #cbd5e0; background: #f8fafc; font-size: 12px; }
@@ -17,7 +27,7 @@
     .btn-group button { border: none; background: transparent; padding: 5px 10px; font-size: 11px; font-weight: 600; cursor: pointer; border-radius: 3px; color: #4a5568; }
     .btn-group button.activo { background: #2b6cb0; color: white; }
 
-    .tabla-container { width: 100%; overflow-x: auto; background: #fff; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); max-height: 82vh; overflow-y: auto; }
+    .tabla-container { width: 100%; overflow-x: auto; background: #fff; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); max-height: 75vh; overflow-y: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 10px; text-align: left; }
     
     th { background: #2d3748; color: white; padding: 6px 4px; font-weight: 600; text-align: center; position: sticky; top: 0; z-index: 10; white-space: nowrap; }
@@ -29,12 +39,37 @@
     input.editable-ppto { width: 75px; padding: 2px 4px; font-weight: bold; border: 1px solid #3182ce; border-radius: 3px; background: #ebf8ff; text-align: right; font-size: 10px; }
     .verde { color: #2f855a; font-weight: bold; }
     .rojo { color: #e53e3e; font-weight: bold; }
+
+    /* Badges Pareto */
+    .badge-top { background: #c6f6d5; color: #22543d; font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: bold; margin-left: 4px; }
+    .badge-sec { background: #e2e8f0; color: #4a5568; font-size: 9px; padding: 1px 5px; border-radius: 3px; margin-left: 4px; }
   </style>
 </head>
 <body>
 
-  <h1>📊 Presupuesto Comercial 2027</h1>
-  <p class="subhead">Modifica <strong>PPTO 2027</strong> para recalcular dinámicamente las variaciones históricas y proyectadas.</p>
+  <div class="header-title">
+    <div>
+      <h1>📊 Presupuesto Comercial 2027</h1>
+      <p class="subhead">Edita los montos en <strong>PPTO 2027</strong> para actualizar las variaciones y el total general al instante.</p>
+    </div>
+  </div>
+
+  <!-- KPI TOTALES SUPERIORES -->
+  <div class="kpi-container">
+    <div class="kpi-card">
+      <div class="kpi-title">VTA + PROY 2026 TOTAL</div>
+      <div class="kpi-value" id="kpi-vta26">$0</div>
+    </div>
+    <div class="kpi-card verde">
+      <div class="kpi-title">PPTO 2027 TOTAL (EDITABLE)</div>
+      <div class="kpi-value" id="kpi-ppto27">$0</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">VARIACIÓN GLOBAL (26VS27)</div>
+      <div class="kpi-value" id="kpi-var-global">0%</div>
+      <div class="kpi-sub" id="kpi-dif-monto">$0 de diferencia</div>
+    </div>
+  </div>
 
   <div class="panel-controles">
     <div class="filtro-item">
@@ -46,8 +81,8 @@
 
     <div class="btn-group">
       <button id="btn-detalle" class="activo" onclick="cambiarVista('detalle')">Ver Detallado</button>
-      <button id="btn-razon" onclick="cambiarVista('razon')">Por Razón Social</button>
-      <button id="btn-familia" onclick="cambiarVista('familia')">Por Familia Agrupada</button>
+      <button id="btn-razon" onclick="cambiarVista('razon')">Por Razón Social (Pareto %)</button>
+      <button id="btn-familia" onclick="cambiarVista('familia')">Por Familia Agrupada (Pareto %)</button>
     </div>
   </div>
 
@@ -57,69 +92,70 @@
         <tr id="encabezado-tabla"></tr>
       </thead>
       <tbody id="cuerpo-tabla">
-        <tr><td colspan="15" style="text-align:center; padding:20px;">Cargando datos desde Google Sheets...</td></tr>
+        <tr><td colspan="16" style="text-align:center; padding:20px;">Cargando datos desde Google Sheets...</td></tr>
       </tbody>
     </table>
   </div>
 
   <script>
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQg66Bztd1en9-FeRpYSCYw5EpCKENstLhX-JOfgW8Nyfv8woaFwE7H9dMsjwRKaansPEtXAkcVlAnp/pub?output=csv';
+    const SPREADSHEET_ID = '1fxDlguyE0s8R4plUXabyMpWoizPrXpLBKe8qfqPOKEY';
+    const GID = '1139127679';
+    const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
 
     let datosOriginales = [];
     let vistaActual = 'detalle';
 
     async function cargarDesdeGoogleSheet() {
       try {
-        const respuesta = await fetch(CSV_URL);
-        const textoCsv = await respuesta.text();
+        const respuesta = await fetch(GVIZ_URL);
+        const texto = await respuesta.text();
         
-        datosOriginales = parsearCSV(textoCsv);
+        const jsonTexto = texto.substring(47, texto.length - 2);
+        const jsonDatos = JSON.parse(jsonTexto);
+        
+        datosOriginales = procesarFilasGViz(jsonDatos.table);
         poblarFiltroEmpresas();
         filtrarYRenderizar();
       } catch (error) {
         console.error("Error al leer Google Sheet:", error);
-        document.getElementById('cuerpo-tabla').innerHTML = `<tr><td colspan="15" style="color:red; padding:20px; text-align:center;">Error al cargar datos. Verifica la conexión con Google Sheets.</td></tr>`;
+        document.getElementById('cuerpo-tabla').innerHTML = `<tr><td colspan="16" style="color:red; padding:20px; text-align:center;">Error al conectar con Google Sheets.</td></tr>`;
       }
     }
 
-    function parsearCSV(texto) {
-      const filas = texto.split('\n').map(f => {
-        // Expresión regular para separar valores por comas respetando comillas
-        const regex = /(?:^|,)(?:"([^"]*)"|([^,]*))/g;
-        const campos = [];
-        let match;
-        while ((match = regex.exec(f))) {
-          campos.push((match[1] || match[2] || '').trim());
-        }
-        return campos;
-      });
-
+    function procesarFilasGViz(tabla) {
       const data = [];
-      for (let i = 1; i < filas.length; i++) {
-        const row = filas[i];
-        if (!row || row.length < 5) continue;
+      const filas = tabla.rows;
+
+      for (let i = 0; i < filas.length; i++) {
+        const c = filas[i].c;
+        if (!c || c.length < 5) continue;
 
         data.push({
-          id: i,
-          id_empresa: row[0] || '-',
-          razon_social_sec: row[1] || '-',
-          familias_agrupadas: row[2] || '-',
-          nombre_familia: row[3] || '-',
-          ppto_2026: limpiarNumero(row[4]),
-          vta_proy_26: limpiarNumero(row[5]),
-          porc_proy: row[6] || '0%',
-          vta_25: limpiarNumero(row[7]),
-          vta_24: limpiarNumero(row[8]),
-          vta_23: limpiarNumero(row[9]),
-          ppto_2027: limpiarNumero(row[10]) || 0
+          id: i + 1,
+          id_empresa: obtenerVal(c[0]),
+          razon_social_sec: obtenerVal(c[1]),
+          familias_agrupadas: obtenerVal(c[2]),
+          nombre_familia: obtenerVal(c[3]),
+          ppto_2026: limpiarNumero(obtenerVal(c[4])),
+          vta_proy_26: limpiarNumero(obtenerVal(c[5])),
+          porc_proy: obtenerVal(c[6]) || '0%',
+          vta_25: limpiarNumero(obtenerVal(c[7])),
+          vta_24: limpiarNumero(obtenerVal(c[8])),
+          vta_23: limpiarNumero(obtenerVal(c[9])),
+          ppto_2027: limpiarNumero(obtenerVal(c[10])) || 0
         });
       }
       return data;
     }
 
+    function obtenerVal(celda) {
+      if (!celda) return '-';
+      return celda.v !== null && celda.v !== undefined ? celda.v.toString().trim() : '-';
+    }
+
     function limpiarNumero(val) {
-      if (!val) return 0;
-      const num = parseFloat(val.replace(/[^0-9.-]+/g, ""));
+      if (!val || val === '-') return 0;
+      const num = parseFloat(val.toString().replace(/[^0-9.-]+/g, ""));
       return isNaN(num) ? 0 : num;
     }
 
@@ -136,40 +172,4 @@
       vistaActual = modo;
       document.querySelectorAll('.btn-group button').forEach(b => b.classList.remove('activo'));
       if (modo === 'detalle') document.getElementById('btn-detalle').classList.add('activo');
-      if (modo === 'razon') document.getElementById('btn-razon').classList.add('activo');
-      if (modo === 'familia') document.getElementById('btn-familia').classList.add('activo');
-      filtrarYRenderizar();
-    }
-
-    function calcVar(vta, base) {
-      if (!base || base === 0) return 0;
-      return (((vta / base) - 1) * 100).toFixed(0);
-    }
-
-    function filtrarYRenderizar() {
-      const empresaSeleccionada = document.getElementById('select-empresa').value;
-      let datosFiltrados = datosOriginales;
-
-      if (empresaSeleccionada !== 'TODOS') {
-        datosFiltrados = datosOriginales.filter(d => d.id_empresa === empresaSeleccionada);
-      }
-
-      renderizarTabla(datosFiltrados);
-    }
-
-    function renderizarTabla(datos) {
-      const thead = document.getElementById('encabezado-tabla');
-      const tbody = document.getElementById('cuerpo-tabla');
-
-      if (datos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="15" style="padding:20px; text-align:center;">No hay registros disponibles.</td></tr>';
-        return;
-      }
-
-      let filasParaMostrar = [];
-
-      if (vistaActual === 'detalle') {
-        thead.innerHTML = `
-          <th>Id_empresa</th>
-          <th>razon_social_sec</th>
-          <th>Familias Agrup
+      if (modo === 'razon')
