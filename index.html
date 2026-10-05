@@ -94,7 +94,7 @@
   <div class="header-title">
     <div>
       <h1>📊 Presupuesto Comercial 2027</h1>
-      <p class="subhead">Modo 100% Independiente (Lectura Directa de datos_2027.csv)</p>
+      <p class="subhead">Modo de Alta Velocidad sin Esperas de Red.</p>
     </div>
     <span id="status-indicator" class="status-badge">⚡ Listo</span>
   </div>
@@ -159,7 +159,7 @@
           <tr id="fila-totales" class="fila-totales"></tr>
         </thead>
         <tbody id="cuerpo-tabla">
-          <tr><td colspan="16" style="text-align:center; padding:20px;">Cargando datos_2027.csv...</td></tr>
+          <tr><td colspan="16" style="text-align:center; padding:20px;">Cargando...</td></tr>
         </tbody>
       </table>
     </div>
@@ -211,8 +211,8 @@
     let chartFamiliasInst = null;
     let chartHistoricoInst = null;
 
-    async function iniciarAplicacion() {
-      // 1. Cargar memoria guardada
+    function iniciarAplicacion() {
+      // 1. Cargar datos guardados previamente en el navegador (Carga Instantánea)
       const cacheGuardado = localStorage.getItem('presupuesto_cache_datos');
       const edicionesLocales = localStorage.getItem('presupuesto_ediciones_2027');
       const metasGuardadas = localStorage.getItem('presupuesto_metas_macro');
@@ -234,28 +234,35 @@
         try { metasMacroFamilia = JSON.parse(metasGuardadas); } catch(e){}
       }
 
-      // 2. Leer automáticamente datos_2027.csv de GitHub
-      try {
-        const res = await fetch('datos_2027.csv?ts=' + Date.now());
-        if (res.ok) {
-          const texto = await res.text();
+      // Mostrar datos inmediatos si existen en caché
+      if (datosOriginales.length > 0) {
+        filtrarYRenderizar();
+        actualizarEstado("📷 Carga Instantánea (Memoria)", "status-badge");
+      }
+
+      // 2. Cargar datos_2027.csv con timeout para no congelar la pantalla
+      const controller = new AbortController();
+      const signal = controller.signal;
+      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 segundos máximo
+
+      fetch('datos_2027.csv?ts=' + Date.now(), { signal })
+        .then(res => {
+          clearTimeout(timeoutId);
+          if (res.ok) return res.text();
+          throw new Error("No se pudo cargar datos_2027.csv");
+        })
+        .then(texto => {
           const filas = parsearCSV(texto);
           if (filas.length > 1) {
             procesarFilasCSV(filas);
-            actualizarEstado("✅ Sincronizado desde datos_2027.csv", "status-badge");
-            return;
+            actualizarEstado("✅ Sincronizado desde datos_2027.csv (" + (filas.length - 1) + " filas)", "status-badge");
           }
-        }
-      } catch (e) {
-        console.warn("Leyendo memoria cache local...");
-      }
-
-      if (datosOriginales.length > 0) {
-        filtrarYRenderizar();
-        actualizarEstado("📷 Cargado desde memoria local", "status-badge");
-      } else {
-        document.getElementById('cuerpo-tabla').innerHTML = '<tr><td colspan="16" style="text-align:center; padding:20px;">Sube el archivo <code>datos_2027.csv</code> o utiliza el botón <strong>📁 Cargar nuevo CSV</strong>.</td></tr>';
-      }
+        })
+        .catch(err => {
+          if (datosOriginales.length === 0) {
+            document.getElementById('cuerpo-tabla').innerHTML = '<tr><td colspan="16" style="text-align:center; padding:20px;">Presione el botón <strong>📁 Cargar nuevo CSV</strong> para seleccionar su archivo <code>datos_2027.csv</code> desde la PC.</td></tr>';
+          }
+        });
     }
 
     function cargarDesdeArchivoLocal(input) {
@@ -587,4 +594,358 @@
       const tbody = document.getElementById('cuerpo-tabla');
       const txtContador = document.getElementById('txt-contador-filas');
 
-      if (txtContador
+      if (txtContador) {
+        txtContador.innerText = "Mostrando " + datos.length + " filas de " + (pestanaActiva === 'familia-macro' ? construirDatosMacroFamilia().length : datosOriginales.length) + " totales";
+      }
+
+      if (datos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="16" style="padding:20px; text-align:center;">No hay registros disponibles. Presione <strong>🧹 Limpiar Filtros Excel</strong> o cargue su archivo CSV.</td></tr>';
+        trTotales.innerHTML = '';
+        return;
+      }
+
+      function crearHeaderHTML(label, campo, esNum) {
+        const tieneFiltro = filtrosExcelActivos[campo] !== undefined;
+        const claseBtn = tieneFiltro ? "btn-filter-excel activo" : "btn-filter-excel";
+        return '<th><div class="th-container"><span>' + label + '</span><button class="' + claseBtn + '" onclick="abrirPopupFiltroExcel(event, \'' + campo + '\', ' + esNum + ')">🔻</button></div></th>';
+      }
+
+      let filasParaMostrar = [...datos];
+
+      if (pestanaActiva === 'familia-macro') {
+        const totalPpto26 = datos.reduce((s, d) => s + (d.ppto_2026 || 0), 0);
+        const totalVta26  = datos.reduce((s, d) => s + (d.vta_proy_26 || 0), 0);
+        const totalVta25  = datos.reduce((s, d) => s + (d.vta_25 || 0), 0);
+        const totalVta24  = datos.reduce((s, d) => s + (d.vta_24 || 0), 0);
+        const totalVta23  = datos.reduce((s, d) => s + (d.vta_23 || 0), 0);
+        const totalPpto27Macro = datos.reduce((s, d) => s + (d.ppto_2027_macro || 0), 0);
+
+        thead.innerHTML = crearHeaderHTML('Id_empresa', 'id_empresa', false) +
+          crearHeaderHTML('Familia Agrupada (Macro)', 'familias_agrupadas', false) +
+          crearHeaderHTML('% Part. Venta', 'pctPart', true) +
+          crearHeaderHTML('% Acumulado', 'pctAcum', true) +
+          crearHeaderHTML('PPTO 2026', 'ppto_2026', true) +
+          crearHeaderHTML('VTA + PROY', 'vta_proy_26', true) +
+          crearHeaderHTML('VTA 25', 'vta_25', true) +
+          crearHeaderHTML('VTA 24', 'vta_24', true) +
+          crearHeaderHTML('VTA 23', 'vta_23', true) +
+          crearHeaderHTML('PPTO 2027 MACRO (META)', 'ppto_2027_macro', true) +
+          '<th>VTA 26VS27 MACRO</th>';
+
+        trTotales.innerHTML = '<td class="texto" colspan="2">TOTAL META MACRO</td>' +
+          '<td>100.0%</td><td>100.0%</td>' +
+          '<td>$' + formatearNumeroVisual(totalPpto26) + '</td>' +
+          '<td>$' + formatearNumeroVisual(totalVta26) + '</td>' +
+          '<td>$' + formatearNumeroVisual(totalVta25) + '</td>' +
+          '<td>$' + formatearNumeroVisual(totalVta24) + '</td>' +
+          '<td>$' + formatearNumeroVisual(totalVta23) + '</td>' +
+          '<td id="tot-ppto27-cell" style="background:#d6bcfa; color:#2b6cb0;">$' + formatearNumeroVisual(totalPpto27Macro) + '</td>' +
+          '<td>' + calcVar(totalVta26, totalPpto27Macro) + '%</td>';
+
+        tbody.innerHTML = '';
+        filasParaMostrar.forEach(function(row) {
+          const metaMacro = Number(row.ppto_2027_macro || 0);
+          const v26 = Number(row.vta_proy_26 || 0);
+          const varMacro = calcVar(v26, metaMacro);
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = '<td class="texto">' + row.id_empresa + '</td>' +
+            '<td class="texto" title="' + row.familias_agrupadas + '"><strong>' + row.familias_agrupadas + '</strong></td>' +
+            '<td><strong>' + row.pctPart.toFixed(1) + '%</strong></td>' +
+            '<td>' + row.pctAcum.toFixed(1) + '%</td>' +
+            '<td>$' + formatearNumeroVisual(row.ppto_2026) + '</td>' +
+            '<td>$' + formatearNumeroVisual(v26) + '</td>' +
+            '<td>$' + formatearNumeroVisual(row.vta_25) + '</td>' +
+            '<td>$' + formatearNumeroVisual(row.vta_24) + '</td>' +
+            '<td>$' + formatearNumeroVisual(row.vta_23) + '</td>' +
+            '<td style="background:#ebf8ff;"><input type="text" class="editable-ppto" value="' + formatearNumeroVisual(metaMacro) + '" onfocus="limpiarCeroAlEnfocar(this)" oninput="actualizarMetaMacroFamilia(this, \'' + row.familias_agrupadas + '\')" onblur="formatearInputAlSalir(this)"></td>' +
+            '<td class="' + (varMacro >= 0 ? 'verde' : 'rojo') + '">' + varMacro + '%</td>';
+          tbody.appendChild(tr);
+        });
+
+      } else {
+        const totalPpto26 = datos.reduce((s, d) => s + (d.ppto_2026 || 0), 0);
+        const totalVta26  = datos.reduce((s, d) => s + (d.vta_proy_26 || 0), 0);
+        const totalVta25  = datos.reduce((s, d) => s + (d.vta_25 || 0), 0);
+        const totalVta24  = datos.reduce((s, d) => s + (d.vta_24 || 0), 0);
+        const totalVta23  = datos.reduce((s, d) => s + (d.vta_23 || 0), 0);
+        const totalPpto27Detalle = datos.reduce((s, d) => s + (d.ppto_2027 || 0), 0);
+
+        thead.innerHTML = crearHeaderHTML('Id_empresa', 'id_empresa', false) +
+          crearHeaderHTML('razon_social_sec (Cliente)', 'razon_social_sec', false) +
+          crearHeaderHTML('Familias Agrupadas', 'familias_agrupadas', false) +
+          crearHeaderHTML('nombre_familia', 'nombre_familia', false) +
+          crearHeaderHTML('PPTO 2026', 'ppto_2026', true) +
+          crearHeaderHTML('VTA + PROY', 'vta_proy_26', true) +
+          '<th>%PROY</th>' +
+          crearHeaderHTML('VTA 25', 'vta_25', true) +
+          crearHeaderHTML('VTA 24', 'vta_24', true) +
+          crearHeaderHTML('VTA 23', 'vta_23', true) +
+          crearHeaderHTML('PPTO 2027 (Detalle)', 'ppto_2027', true) +
+          '<th>VTA 26VS27</th>';
+
+        trTotales.innerHTML = '<td class="texto" colspan="4">TOTAL DETALLE CLIENTES</td>' +
+          '<td>$' + formatearNumeroVisual(totalPpto26) + '</td>' +
+          '<td>$' + formatearNumeroVisual(totalVta26) + '</td>' +
+          '<td>-</td>' +
+          '<td>$' + formatearNumeroVisual(totalVta25) + '</td>' +
+          '<td>$' + formatearNumeroVisual(totalVta24) + '</td>' +
+          '<td>$' + formatearNumeroVisual(totalVta23) + '</td>' +
+          '<td id="tot-ppto27-cell" style="background:#d6bcfa; color:#2b6cb0;">$' + formatearNumeroVisual(totalPpto27Detalle) + '</td>' +
+          '<td>' + calcVar(totalVta26, totalPpto27Detalle) + '%</td>';
+
+        tbody.innerHTML = '';
+        filasParaMostrar.forEach(function(row) {
+          const ppto27 = Number(row.ppto_2027 || 0);
+          const v26 = Number(row.vta_proy_26 || 0);
+          const var26_27 = calcVar(v26, ppto27);
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = '<td class="texto">' + row.id_empresa + '</td>' +
+            '<td class="texto" title="' + row.razon_social_sec + '">' + row.razon_social_sec + '</td>' +
+            '<td class="texto" title="' + row.familias_agrupadas + '">' + row.familias_agrupadas + '</td>' +
+            '<td class="texto" title="' + row.nombre_familia + '">' + row.nombre_familia + '</td>' +
+            '<td>$' + formatearNumeroVisual(row.ppto_2026) + '</td>' +
+            '<td>$' + formatearNumeroVisual(v26) + '</td>' +
+            '<td>' + (row.ppto_2026 > 0 ? ((v26 / row.ppto_2026) * 100).toFixed(0) + '%' : '0%') + '</td>' +
+            '<td>$' + formatearNumeroVisual(row.vta_25) + '</td>' +
+            '<td>$' + formatearNumeroVisual(row.vta_24) + '</td>' +
+            '<td>$' + formatearNumeroVisual(row.vta_23) + '</td>' +
+            '<td style="background:#ebf8ff;"><input type="text" class="editable-ppto" value="' + formatearNumeroVisual(ppto27) + '" onfocus="limpiarCeroAlEnfocar(this)" oninput="actualizarPptoDinami(this, ' + row.id + ')" onblur="formatearInputAlSalir(this)"></td>' +
+            '<td id="var27-' + row.id + '" class="' + (var26_27 >= 0 ? 'verde' : 'rojo') + '">' + var26_27 + '%</td>';
+          tbody.appendChild(tr);
+        });
+
+        renderizarPanelCuadreLateral();
+      }
+    }
+
+    function renderizarPanelCuadreLateral() {
+      const tbodyCuadre = document.getElementById('cuerpo-panel-cuadre');
+      if (!tbodyCuadre) return;
+
+      const macroDatos = construirDatosMacroFamilia();
+      tbodyCuadre.innerHTML = '';
+
+      macroDatos.forEach(function(f) {
+        const famName = f.familias_agrupadas;
+        const metaP1 = Number(metasMacroFamilia[famName] || 0);
+
+        const sumP2 = datosOriginales
+          .filter(d => (d.familias_agrupadas || 'SIN CLASIFICAR') === famName)
+          .reduce((s, i) => s + Number(i.ppto_2027 || 0), 0);
+
+        const dif = sumP2 - metaP1;
+        let estadoHtml = '';
+
+        if (metaP1 === 0 && sumP2 === 0) {
+          estadoHtml = '<span class="alerta-cuadre ok">Sin Meta</span>';
+        } else if (Math.abs(dif) < 1) {
+          estadoHtml = '<span class="alerta-cuadre ok">🟢 100%</span>';
+        } else if (dif > 0) {
+          estadoHtml = '<span class="alerta-cuadre exceso">🔴 +$' + formatearNumeroVisual(dif) + '</span>';
+        } else {
+          estadoHtml = '<span class="alerta-cuadre falta">⚠️ -$' + formatearNumeroVisual(Math.abs(dif)) + '</span>';
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td style="font-size:9px; text-align:left;" title="' + famName + '">' + (famName.length > 15 ? famName.substring(0, 15) + '..' : famName) + '</td>' +
+          '<td style="font-size:9px;">$' + formatearNumeroVisual(metaP1) + '</td>' +
+          '<td style="font-size:9px;">$' + formatearNumeroVisual(sumP2) + '</td>' +
+          '<td>' + estadoHtml + '</td>';
+        tbodyCuadre.appendChild(tr);
+      });
+    }
+
+    function limpiarCeroAlEnfocar(inputElement) {
+      if (inputElement.value === "0" || inputElement.value === "$0") {
+        inputElement.value = "";
+      }
+    }
+
+    function actualizarMetaMacroFamilia(inputElement, familiaName) {
+      const nuevoValor = limpiarNumero(inputElement.value);
+      metasMacroFamilia[familiaName] = nuevoValor;
+      localStorage.setItem('presupuesto_metas_macro', JSON.stringify(metasMacroFamilia));
+      actualizarTotalesSolo();
+    }
+
+    function actualizarPptoDinami(inputElement, id) {
+      const nuevoValor = limpiarNumero(inputElement.value);
+      const item = datosOriginales.find(function(d) { return d.id === id; });
+      if (item) {
+        item.ppto_2027 = nuevoValor;
+        actualizarTotalesSolo();
+      }
+    }
+
+    function formatearInputAlSalir(inputElement) {
+      const num = limpiarNumero(inputElement.value);
+      inputElement.value = formatearNumeroVisual(num);
+    }
+
+    function actualizarTotalesSolo() {
+      const datosFiltrados = obtenerDatosFiltrados();
+
+      if (pestanaActiva === 'familia-macro') {
+        const totalPpto27Macro = datosFiltrados.reduce((s, d) => s + (d.ppto_2027_macro || 0), 0);
+        const celdaTotPpto = document.getElementById('tot-ppto27-cell');
+        if (celdaTotPpto) celdaTotPpto.innerText = '$' + formatearNumeroVisual(totalPpto27Macro);
+      } else {
+        const totalPpto27Detalle = datosFiltrados.reduce((s, d) => s + (d.ppto_2027 || 0), 0);
+        const celdaTotPpto = document.getElementById('tot-ppto27-cell');
+        if (celdaTotPpto) celdaTotPpto.innerText = '$' + formatearNumeroVisual(totalPpto27Detalle);
+        renderizarPanelCuadreLateral();
+      }
+    }
+
+    function actualizarDashboard() {
+      const datos = datosOriginales;
+      if (datos.length === 0) return;
+
+      const mapaClientes = {};
+      datos.forEach(function(d) {
+        const cli = d.razon_social_sec || 'OTROS';
+        if (!mapaClientes[cli]) mapaClientes[cli] = { v24: 0, v25: 0, v26: 0, p26: 0, p27: 0 };
+        mapaClientes[cli].v24 += Number(d.vta_24 || 0);
+        mapaClientes[cli].v25 += Number(d.vta_25 || 0);
+        mapaClientes[cli].v26 += Number(d.vta_proy_26 || 0);
+        mapaClientes[cli].p26 += Number(d.ppto_2026 || 0);
+        mapaClientes[cli].p27 += Number(d.ppto_2027 || 0);
+      });
+
+      const topClientes = Object.entries(mapaClientes)
+        .sort(function(a, b) { return b[1].p27 - a[1].p27; })
+        .slice(0, 10);
+
+      const labelsClientes = topClientes.map(function(c) { return c[0].length > 18 ? c[0].substring(0, 18) + '...' : c[0]; });
+
+      if (chartClientesInst) chartClientesInst.destroy();
+      chartClientesInst = new Chart(document.getElementById('chartClientes'), {
+        type: 'bar',
+        data: {
+          labels: labelsClientes,
+          datasets: [
+            { label: 'VTA 25', data: topClientes.map(c => c[1].v25), backgroundColor: '#a0aec0' },
+            { label: 'VTA + PROY 26', data: topClientes.map(c => c[1].v26), backgroundColor: '#718096' },
+            { label: 'PPTO 2027 (Detalle Cliente)', data: topClientes.map(c => c[1].p27), backgroundColor: '#3182ce' }
+          ]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+      });
+
+      const mapaFam = {};
+      datos.forEach(function(d) {
+        const fam = d.familias_agrupadas || 'SIN FAMILIA';
+        if (!mapaFam[fam]) mapaFam[fam] = { v25: 0, p26: 0, p27: 0 };
+        mapaFam[fam].v25 += Number(d.vta_25 || 0);
+        mapaFam[fam].p26 += Number(d.ppto_2026 || 0);
+        mapaFam[fam].p27 += Number(d.ppto_2027 || 0);
+      });
+
+      const topFamilias = Object.entries(mapaFam).sort(function(a, b) { return b[1].p27 - a[1].p27; }).slice(0, 8);
+      const labelsFam = topFamilias.map(function(f) { return f[0]; });
+
+      if (chartFamiliasInst) chartFamiliasInst.destroy();
+      chartFamiliasInst = new Chart(document.getElementById('chartFamilias'), {
+        type: 'bar',
+        data: {
+          labels: labelsFam,
+          datasets: [
+            { label: 'PPTO 2026', data: topFamilias.map(f => f[1].p26), backgroundColor: '#805ad5' },
+            { label: 'PPTO 2027 (Suma Clientes)', data: topFamilias.map(f => f[1].p27), backgroundColor: '#38a169' }
+          ]
+        },
+        options: { indexAxis: 'y', responsive: true, plugins: { legend: { position: 'bottom' } } }
+      });
+
+      const sumV23 = datos.reduce((s, d) => s + (d.vta_23 || 0), 0);
+      const sumV24 = datos.reduce((s, d) => s + (d.vta_24 || 0), 0);
+      const sumV25 = datos.reduce((s, d) => s + (d.vta_25 || 0), 0);
+      const sumV26 = datos.reduce((s, d) => s + (d.vta_proy_26 || 0), 0);
+      const sumP26 = datos.reduce((s, d) => s + (d.ppto_2026 || 0), 0);
+      const sumP27 = datos.reduce((s, d) => s + (d.ppto_2027 || 0), 0);
+
+      if (chartHistoricoInst) chartHistoricoInst.destroy();
+      chartHistoricoInst = new Chart(document.getElementById('chartHistorico'), {
+        type: 'line',
+        data: {
+          labels: ['VTA 23', 'VTA 24', 'VTA 25', 'VTA + PROY 26', 'PPTO 2026', 'PPTO 2027 Detalle'],
+          datasets: [
+            {
+              label: 'Ventas Reales / Proyectadas ($)',
+              data: [sumV23, sumV24, sumV25, sumV26, null, null],
+              borderColor: '#2b6cb0',
+              backgroundColor: 'rgba(49, 130, 206, 0.15)',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 6
+            },
+            {
+              label: 'Metas Presupuestadas ($)',
+              data: [null, null, null, sumV26, sumP26, sumP27],
+              borderColor: '#38a169',
+              borderDash: [6, 6],
+              backgroundColor: 'transparent',
+              pointRadius: 8,
+              pointStyle: 'rectRot'
+            }
+          ]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+      });
+    }
+
+    function descargarCSV() {
+      cerrarMenuLooker();
+      const datosExportar = obtenerDatosFiltrados();
+
+      let csvContent = "\uFEFF";
+      csvContent += "Id_empresa,Gerencia,razon_social_sec,Familias Agrupadas,nombre_familia,PPTO 2026,VTA + PROY 26,VTA 25,VTA 24,VTA 23,PPTO 2027\n";
+
+      datosExportar.forEach(function(d) {
+        const fila = [
+          '"' + d.id_empresa + '"',
+          '"' + (d.gerencia || '-') + '"',
+          '"' + d.razon_social_sec + '"',
+          '"' + d.familias_agrupadas + '"',
+          '"' + d.nombre_familia + '"',
+          d.ppto_2026,
+          d.vta_proy_26,
+          d.vta_25,
+          d.vta_24,
+          d.vta_23,
+          d.ppto_2027
+        ];
+        csvContent += fila.join(",") + "\n";
+      });
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", 'Presupuesto_2027.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function copiarAlPortapapeles() {
+      cerrarMenuLooker();
+      const datosExportar = obtenerDatosFiltrados();
+
+      let textoClip = "Id_empresa\tGerencia\trazon_social_sec\tFamilias Agrupadas\tnombre_familia\tPPTO 2026\tVTA + PROY 26\tVTA 25\tVTA 24\tVTA 23\tPPTO 2027\n";
+
+      datosExportar.forEach(function(d) {
+        textoClip += d.id_empresa + '\t' + (d.gerencia || '-') + '\t' + d.razon_social_sec + '\t' + d.familias_agrupadas + '\t' + d.nombre_familia + '\t' + d.ppto_2026 + '\t' + d.vta_proy_26 + '\t' + d.vta_25 + '\t' + d.vta_24 + '\t' + d.vta_23 + '\t' + d.ppto_2027 + '\n';
+      });
+
+      navigator.clipboard.writeText(textoClip).then(function() {
+        alert("¡Datos copiados al portapapeles!");
+      });
+    }
+
+    iniciarAplicacion();
+  </script>
+</body>
+</html>
