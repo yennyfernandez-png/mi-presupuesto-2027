@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>Presupuesto Comercial 2027</title>
-  <!-- Chart.js CDN para gráficos inmediatos -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     * { box-sizing: border-box; }
@@ -13,7 +12,6 @@
     h1 { color: #1a365d; font-size: 18px; margin: 0; }
     .subhead { color: #4a5568; font-size: 11px; margin: 0; }
 
-    /* Pestañas Principales (Tabla vs Gráficos) */
     .tabs-main { display: flex; gap: 8px; margin-bottom: 10px; border-bottom: 2px solid #cbd5e0; padding-bottom: 4px; }
     .tab-button { padding: 6px 14px; font-size: 12px; font-weight: bold; border: none; background: #e2e8f0; color: #4a5568; border-radius: 6px 6px 0 0; cursor: pointer; }
     .tab-button.activo { background: #2b6cb0; color: white; }
@@ -33,7 +31,6 @@
     .btn-guardar { background: #2f855a; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: background 0.2s; }
     .btn-guardar:hover { background: #276749; }
 
-    /* Menú Estilo Looker Studio (3 Puntos ⋮) */
     .menu-looker-container { margin-left: auto; position: relative; }
     .btn-tres-puntos { background: transparent; border: 1px solid #cbd5e0; border-radius: 4px; padding: 4px 10px; font-size: 16px; font-weight: bold; cursor: pointer; color: #4a5568; }
     .btn-tres-puntos:hover { background: #edf2f7; color: #1a365d; }
@@ -68,7 +65,6 @@
     .badge-top { background: #c6f6d5; color: #22543d; font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: bold; margin-left: 4px; }
     .badge-sec { background: #e2e8f0; color: #4a5568; font-size: 9px; padding: 1px 5px; border-radius: 3px; margin-left: 4px; }
 
-    /* Estilos Dashboard / Gráficos */
     .dashboard-container { display: none; gap: 15px; flex-wrap: wrap; }
     .chart-card { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); flex: 1; min-width: 450px; }
     .chart-card h3 { font-size: 13px; color: #1a365d; margin-top: 0; margin-bottom: 12px; border-bottom: 1px solid #edf2f7; padding-bottom: 6px; }
@@ -79,12 +75,11 @@
   <div class="header-title">
     <div>
       <h1>📊 Presupuesto Comercial 2027</h1>
-      <p class="subhead">Modifica <strong>PPTO 2027</strong> para actualizar tablas y gráficos al instante.</p>
+      <p class="subhead">Sincronización multi-servidor activa.</p>
     </div>
     <span id="status-indicator" class="status-badge loading">⚡ Cargando...</span>
   </div>
 
-  <!-- Pestañas Principales -->
   <div class="tabs-main">
     <button id="tab-tabla" class="tab-button activo" onclick="mostrarSeccion('tabla')">📋 Tabla Comercial</button>
     <button id="tab-graficos" class="tab-button" onclick="mostrarSeccion('graficos')">📈 Gráficos y Dashboard</button>
@@ -109,8 +104,8 @@
     <div class="menu-looker-container">
       <button class="btn-tres-puntos" onclick="toggleMenuLooker(event)">⋮</button>
       <div id="menu-dropdown-looker" class="dropdown-menu-looker">
-        <div class="dropdown-item" onclick="recargarDesdeGoogleSheet(true)">
-          <span>🔄</span> Forzar Sincronización
+        <div class="dropdown-item" onclick="recargarMultiplesPuntos(true)">
+          <span>🔄</span> Reintentar Conexión
         </div>
         <div class="dropdown-item" onclick="exportarAGoogleSheets()">
           <span>📊</span> Abrir Google Sheet original
@@ -126,7 +121,6 @@
     </div>
   </div>
 
-  <!-- SECCIÓN TABLA -->
   <div id="seccion-tabla" class="tabla-container">
     <table>
       <thead>
@@ -139,7 +133,6 @@
     </table>
   </div>
 
-  <!-- SECCIÓN DASHBOARD / GRÁFICOS -->
   <div id="seccion-graficos" class="dashboard-container">
     <div class="chart-card">
       <h3>🏆 Top 10 Clientes: VTA+PROY 26 vs PPTO 2027</h3>
@@ -165,83 +158,91 @@
     let columnaOrden = 'vta_proy_26';
     let ordenAscendente = false;
 
-    // Instancias de Chart.js
     let chartClientesInst = null;
     let chartFamiliasInst = null;
     let chartHistoricoInst = null;
 
     function iniciarCarga() {
+      // 1. Mostrar Caché guardado inmediatamente
       const cacheGuardado = localStorage.getItem('presupuesto_cache_datos');
       if (cacheGuardado) {
         try {
           datosOriginales = JSON.parse(cacheGuardado);
           poblarFiltroEmpresas();
           filtrarYRenderizar();
-          actualizarEstado("⚡ Listo (Caché)", "ready");
+          actualizarEstado("⚡ Carga Instantánea (Caché)", "ready");
         } catch (e) {
-          console.warn("Caché no válido...");
+          console.warn("Caché no disponible");
         }
       }
-      recargarDesdeGoogleSheet(false);
+      // 2. Traer datos remotos con fallback
+      recargarMultiplesPuntos(false);
     }
 
-    function recargarDesdeGoogleSheet(forzado) {
-      if (forzado) actualizarEstado("🔄 Sincronizando...", "loading");
+    async function recargarMultiplesPuntos(forzado) {
+      if (forzado) actualizarEstado("🔄 Conectando con Google...", "loading");
 
+      // Intento 1: Fetch vía proxy CORS AllOrigins
+      const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(gvizUrl)}&ts=${Date.now()}`;
+
+      try {
+        const res = await fetch(proxyUrl);
+        const dataJson = await res.json();
+        if (dataJson && dataJson.contents) {
+          const rawText = dataJson.contents;
+          const jsonText = rawText.substring(rawText.indexOf("{"), rawText.lastIndexOf("}") + 1);
+          const parsed = JSON.parse(jsonText);
+          
+          if (parsed && parsed.table) {
+            procesarYActualizarRemoto(parsed.table);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("Proxy 1 falló, probando Script Tag JSONP...");
+      }
+
+      // Intento 2: JSONP directo (Fallback)
       const script = document.createElement('script');
-      script.src = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?gid=${GID}&tqx=responseHandler:recibirDatosGViz`;
+      script.src = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?gid=${GID}&tqx=responseHandler:recibirDatosGViz&ts=${Date.now()}`;
       script.onerror = function() {
         if (datosOriginales.length === 0) {
           document.getElementById('cuerpo-tabla').innerHTML = `
             <tr><td colspan="16" style="color:red; text-align:center; padding:20px;">
-              ⚠️ Error de acceso a Google Sheets. Verifica los permisos de acceso.
+              ⚠️ Ocurrió una demora con Google Sheets. Mostrando datos guardados.
             </td></tr>`;
         }
-        actualizarEstado("⚠️ Modo Offline", "ready");
+        actualizarEstado("⚠️ Usando Datos Guardados", "ready");
       };
       document.body.appendChild(script);
     }
 
     window.recibirDatosGViz = function(jsonDatos) {
       if (jsonDatos && jsonDatos.table) {
-        const datosRemotos = procesarFilasGViz(jsonDatos.table);
-        
-        const edicionesLocales = localStorage.getItem('presupuesto_ediciones_2027');
-        if (edicionesLocales) {
-          const mapaEdiciones = JSON.parse(edicionesLocales);
-          datosRemotos.forEach(d => {
-            if (mapaEdiciones[d.id] !== undefined) {
-              d.ppto_2027 = mapaEdiciones[d.id];
-            }
-          });
-        }
-
-        datosOriginales = datosRemotos;
-        localStorage.setItem('presupuesto_cache_datos', JSON.stringify(datosOriginales));
-        
-        poblarFiltroEmpresas();
-        filtrarYRenderizar();
-        actualizarEstado("✅ Sincronizado", "ready");
+        procesarYActualizarRemoto(jsonDatos.table);
       }
     };
 
-    function mostrarSeccion(seccion) {
-      seccionActiva = seccion;
-      document.getElementById('tab-tabla').classList.remove('activo');
-      document.getElementById('tab-graficos').classList.remove('activo');
-
-      if (seccion === 'tabla') {
-        document.getElementById('tab-tabla').classList.add('activo');
-        document.getElementById('seccion-tabla').style.display = 'block';
-        document.getElementById('seccion-graficos').style.display = 'none';
-        document.getElementById('controles-vista-tabla').style.display = 'flex';
-      } else {
-        document.getElementById('tab-graficos').classList.add('activo');
-        document.getElementById('seccion-tabla').style.display = 'none';
-        document.getElementById('seccion-graficos').style.display = 'flex';
-        document.getElementById('controles-vista-tabla').style.display = 'none';
-        actualizarDashboard();
+    function procesarYActualizarRemoto(tablaGViz) {
+      const datosRemotos = procesarFilasGViz(tablaGViz);
+      
+      const edicionesLocales = localStorage.getItem('presupuesto_ediciones_2027');
+      if (edicionesLocales) {
+        const mapaEdiciones = JSON.parse(edicionesLocales);
+        datosRemotos.forEach(d => {
+          if (mapaEdiciones[d.id] !== undefined) {
+            d.ppto_2027 = mapaEdiciones[d.id];
+          }
+        });
       }
+
+      datosOriginales = datosRemotos;
+      localStorage.setItem('presupuesto_cache_datos', JSON.stringify(datosOriginales));
+      
+      poblarFiltroEmpresas();
+      filtrarYRenderizar();
+      actualizarEstado("✅ Sincronizado", "ready");
     }
 
     function actualizarEstado(mensaje, clase) {
@@ -315,7 +316,7 @@
       });
       localStorage.setItem('presupuesto_ediciones_2027', JSON.stringify(mapaEdiciones));
       localStorage.setItem('presupuesto_cache_datos', JSON.stringify(datosOriginales));
-      alert("✅ ¡Presupuesto guardado correctamente!");
+      alert("✅ ¡Presupuesto guardado con éxito!");
     }
 
     function poblarFiltroEmpresas() {
@@ -336,6 +337,25 @@
       if (modo === 'razon') document.getElementById('btn-razon').classList.add('activo');
       if (modo === 'familia') document.getElementById('btn-familia').classList.add('activo');
       filtrarYRenderizar();
+    }
+
+    function mostrarSeccion(seccion) {
+      seccionActiva = seccion;
+      document.getElementById('tab-tabla').classList.remove('activo');
+      document.getElementById('tab-graficos').classList.remove('activo');
+
+      if (seccion === 'tabla') {
+        document.getElementById('tab-tabla').classList.add('activo');
+        document.getElementById('seccion-tabla').style.display = 'block';
+        document.getElementById('seccion-graficos').style.display = 'none';
+        document.getElementById('controles-vista-tabla').style.display = 'flex';
+      } else {
+        document.getElementById('tab-graficos').classList.add('activo');
+        document.getElementById('seccion-tabla').style.display = 'none';
+        document.getElementById('seccion-graficos').style.display = 'flex';
+        document.getElementById('controles-vista-tabla').style.display = 'none';
+        actualizarDashboard();
+      }
     }
 
     function ordenarPor(col) {
@@ -408,4 +428,71 @@
           <th onclick="ordenarPor('id_empresa')">Id_empresa ↕</th>
           <th onclick="ordenarPor('razon_social_sec')">razon_social_sec ↕</th>
           <th onclick="ordenarPor('familias_agrupadas')">Familias Agrupadas ↕</th>
-          <th
+          <th onclick="ordenarPor('nombre_familia')">nombre_familia ↕</th>
+          <th onclick="ordenarPor('ppto_2026')">PPTO 2026 ↕</th>
+          <th onclick="ordenarPor('vta_proy_26')">VTA + PROY ↕</th>
+          <th>%PROY</th>
+          <th onclick="ordenarPor('vta_25')">VTA 25 ↕</th>
+          <th onclick="ordenarPor('vta_24')">VTA 24 ↕</th>
+          <th onclick="ordenarPor('vta_23')">VTA 23 ↕</th>
+          <th class="highlight" onclick="ordenarPor('ppto_2027')">PPTO 2027 ↕</th>
+          <th>VTA 26VS27</th>
+          <th>VTA 26VS25</th>
+          <th>VTA 26VS24</th>
+          <th>VTA 26VS23</th>
+        `;
+
+        trTotales.innerHTML = `
+          <td class="texto" colspan="4">TOTAL GENERAL</td>
+          <td>$${Math.round(totalPpto26).toLocaleString()}</td>
+          <td>$${Math.round(totalVta26).toLocaleString()}</td>
+          <td>${totPorcProy}</td>
+          <td>$${Math.round(totalVta25).toLocaleString()}</td>
+          <td>$${Math.round(totalVta24).toLocaleString()}</td>
+          <td>$${Math.round(totalVta23).toLocaleString()}</td>
+          <td id="tot-ppto27-cell" style="background:#d6bcfa; color:#2b6cb0;">$${Math.round(totalPpto27).toLocaleString()}</td>
+          <td id="tot-var27-cell" class="${totVar26_27 >= 0 ? 'verde' : 'rojo'}">${totVar26_27}%</td>
+          <td class="${totVar26_25 >= 0 ? 'verde' : 'rojo'}">${totVar26_25}%</td>
+          <td class="${totVar26_24 >= 0 ? 'verde' : 'rojo'}">${totVar26_24}%</td>
+          <td class="${totVar26_23 >= 0 ? 'verde' : 'rojo'}">${totVar26_23}%</td>
+        `;
+
+        filasParaMostrar = [...datos];
+      } else {
+        const campoClave = vistaActual === 'razon' ? 'razon_social_sec' : 'familias_agrupadas';
+        thead.innerHTML = `
+          <th onclick="ordenarPor('id_empresa')">Id_empresa ↕</th>
+          <th onclick="ordenarPor('agrupador')">${vistaActual === 'razon' ? 'razon_social_sec' : 'Familias Agrupadas'} ↕</th>
+          <th onclick="ordenarPor('pctPart')">% Part. Venta ↕</th>
+          <th onclick="ordenarPor('pctAcum')">% Acumulado ↕</th>
+          <th onclick="ordenarPor('ppto_2026')">PPTO 2026 ↕</th>
+          <th onclick="ordenarPor('vta_proy_26')">VTA + PROY ↕</th>
+          <th onclick="ordenarPor('vta_25')">VTA 25 ↕</th>
+          <th onclick="ordenarPor('vta_24')">VTA 24 ↕</th>
+          <th onclick="ordenarPor('vta_23')">VTA 23 ↕</th>
+          <th class="highlight" onclick="ordenarPor('ppto_2027')">PPTO 2027 ↕</th>
+          <th>VTA 26VS27</th>
+          <th>VTA 26VS25</th>
+          <th>VTA 26VS24</th>
+          <th>VTA 26VS23</th>
+        `;
+
+        trTotales.innerHTML = `
+          <td class="texto" colspan="2">TOTAL GENERAL</td>
+          <td>100.0%</td>
+          <td>100.0%</td>
+          <td>$${Math.round(totalPpto26).toLocaleString()}</td>
+          <td>$${Math.round(totalVta26).toLocaleString()}</td>
+          <td>$${Math.round(totalVta25).toLocaleString()}</td>
+          <td>$${Math.round(totalVta24).toLocaleString()}</td>
+          <td>$${Math.round(totalVta23).toLocaleString()}</td>
+          <td id="tot-ppto27-cell" style="background:#d6bcfa; color:#2b6cb0;">$${Math.round(totalPpto27).toLocaleString()}</td>
+          <td id="tot-var27-cell" class="${totVar26_27 >= 0 ? 'verde' : 'rojo'}">${totVar26_27}%</td>
+          <td class="${totVar26_25 >= 0 ? 'verde' : 'rojo'}">${totVar26_25}%</td>
+          <td class="${totVar26_24 >= 0 ? 'verde' : 'rojo'}">${totVar26_24}%</td>
+          <td class="${totVar26_23 >= 0 ? 'verde' : 'rojo'}">${totVar26_23}%</td>
+        `;
+
+        const mapaAgrupado = {};
+        datos.forEach(item => {
+          const clave = item[campoClave] || 'SIN
