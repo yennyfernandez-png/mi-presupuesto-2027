@@ -17,9 +17,6 @@
     .tab-button.activo { background: #2b6cb0; color: white; }
 
     .panel-controles { display: flex; gap: 10px; align-items: center; background: #fff; padding: 8px 12px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 10px; position: relative; flex-wrap: wrap; }
-    .filtro-item { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: bold; }
-    select, input.input-busqueda { padding: 4px 8px; border-radius: 4px; border: 1px solid #cbd5e0; background: #f8fafc; font-size: 12px; }
-    input.input-busqueda { width: 180px; }
     
     .btn-group { display: flex; background: #edf2f7; border-radius: 4px; padding: 2px; }
     .btn-group button { border: none; background: transparent; padding: 5px 10px; font-size: 11px; font-weight: 600; cursor: pointer; border-radius: 3px; color: #4a5568; }
@@ -42,13 +39,35 @@
     .dropdown-item:hover { background: #ebf8ff; color: #2b6cb0; }
     .dropdown-divider { height: 1px; background: #e2e8f0; margin: 4px 0; }
 
-    .tabla-container { width: 100%; overflow-x: auto; background: #fff; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); max-height: 75vh; overflow-y: auto; }
+    /* TABLA Y ENCABEZADOS ESTILO EXCEL */
+    .tabla-container { width: 100%; overflow-x: auto; background: #fff; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); max-height: 75vh; overflow-y: auto; position: relative; }
     table { width: 100%; border-collapse: collapse; font-size: 10px; text-align: left; }
     
-    th { background: #2d3748; color: white; padding: 6px 4px; font-weight: 600; text-align: center; position: sticky; top: 0; z-index: 10; white-space: nowrap; cursor: pointer; user-select: none; }
-    th:hover { background: #4a5568; }
+    th { background: #2d3748; color: white; padding: 6px 4px; font-weight: 600; text-align: center; position: sticky; top: 0; z-index: 10; white-space: nowrap; user-select: none; }
     th.highlight { background: #2b6cb0; }
     
+    .th-container { display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 0 2px; }
+    .btn-filter-excel { background: transparent; border: none; color: #cbd5e0; cursor: pointer; font-size: 10px; padding: 1px 3px; border-radius: 2px; }
+    .btn-filter-excel:hover, .btn-filter-excel.activo { color: #fff; background: rgba(255,255,255,0.2); }
+
+    /* POPUP DE FILTRO ENCABEZADO TIPO EXCEL */
+    .excel-filter-popup { display: none; position: absolute; background: #ffffff; color: #2d3748; border: 1px solid #cbd5e0; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); width: 250px; z-index: 500; font-size: 11px; padding: 8px; text-align: left; }
+    .excel-filter-popup.show { display: block; }
+
+    .filter-opt-item { padding: 6px 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-radius: 4px; font-weight: 500; }
+    .filter-opt-item:hover { background: #edf2f7; color: #2b6cb0; }
+    .filter-divider { height: 1px; background: #e2e8f0; margin: 6px 0; }
+
+    .filter-search-box { width: 100%; padding: 4px 8px; font-size: 11px; border: 1px solid #cbd5e0; border-radius: 4px; margin-bottom: 6px; }
+    .filter-checkbox-list { max-height: 140px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px; padding: 4px; background: #faf5ff; }
+    .filter-checkbox-item { display: flex; align-items: center; gap: 6px; padding: 3px 4px; font-size: 10px; cursor: pointer; }
+    .filter-checkbox-item:hover { background: #ebf8ff; }
+
+    .filter-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
+    .btn-excel-action { padding: 4px 10px; font-size: 11px; font-weight: bold; border-radius: 4px; border: none; cursor: pointer; }
+    .btn-excel-cancel { background: #e2e8f0; color: #4a5568; }
+    .btn-excel-accept { background: #2f855a; color: white; }
+
     tr.fila-totales { background: #ebf8ff; font-weight: bold; position: sticky; top: 25px; z-index: 9; border-bottom: 2px solid #3182ce; }
     tr.fila-totales td { padding: 6px 4px; border-bottom: 2px solid #3182ce; color: #1a365d; font-size: 10px; text-align: right; }
     tr.fila-totales td.texto { text-align: left; }
@@ -61,100 +80,4 @@
     input.editable-ppto:focus { outline: 2px solid #3182ce; background: #ebf8ff; }
 
     .verde { color: #2f855a; font-weight: bold; }
-    .rojo { color: #e53e3e; font-weight: bold; }
-
-    .badge-top { background: #c6f6d5; color: #22543d; font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: bold; margin-left: 4px; }
-    .badge-sec { background: #e2e8f0; color: #4a5568; font-size: 9px; padding: 1px 5px; border-radius: 3px; margin-left: 4px; }
-
-    .dashboard-container { display: none; gap: 15px; flex-wrap: wrap; }
-    .chart-card { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); flex: 1; min-width: 450px; }
-    .chart-card h3 { font-size: 13px; color: #1a365d; margin-top: 0; margin-bottom: 12px; border-bottom: 1px solid #edf2f7; padding-bottom: 6px; }
-  </style>
-</head>
-<body>
-
-  <div class="header-title">
-    <div>
-      <h1>📊 Presupuesto Comercial 2027</h1>
-      <p class="subhead">Totales automáticos por filtro y formato con comas en PPTO 2027.</p>
-    </div>
-    <span id="status-indicator" class="status-badge loading">⚡ Cargando...</span>
-  </div>
-
-  <div class="tabs-main">
-    <button id="tab-tabla" class="tab-button activo" onclick="mostrarSeccion('tabla')">📋 Tabla Comercial</button>
-    <button id="tab-graficos" class="tab-button" onclick="mostrarSeccion('graficos')">📈 Gráficos y Dashboard</button>
-  </div>
-
-  <div class="panel-controles">
-    <div class="filtro-item">
-      <span>Filtrar Empresa/País:</span>
-      <select id="select-empresa" onchange="filtrarYRenderizar()">
-        <option value="TODOS">🌍 Todas las Empresas</option>
-      </select>
-    </div>
-
-    <!-- Buscador Integrado -->
-    <div class="filtro-item">
-      <span>🔍 Buscar:</span>
-      <input type="text" id="input-buscar" class="input-busqueda" placeholder="Buscar Razón / Familia..." oninput="filtrarYRenderizar()">
-    </div>
-
-    <div id="controles-vista-tabla" class="btn-group">
-      <button id="btn-detalle" class="activo" onclick="cambiarVista('detalle')">Ver Detallado</button>
-      <button id="btn-razon" onclick="cambiarVista('razon')">Por Razón Social (Pareto %)</button>
-      <button id="btn-familia" onclick="cambiarVista('familia')">Por Familia Agrupada (Pareto %)</button>
-    </div>
-
-    <button id="btn-guardar-cloud" class="btn-guardar" onclick="guardarLocalmente()">💾 Guardar Cambios</button>
-
-    <div class="menu-looker-container">
-      <button class="btn-tres-puntos" onclick="toggleMenuLooker(event)">⋮</button>
-      <div id="menu-dropdown-looker" class="dropdown-menu-looker">
-        <div class="dropdown-item" onclick="cargarDesdeGoogleSheet()">
-          <span>🔄</span> Reintentar Conexión
-        </div>
-        <div class="dropdown-item" onclick="exportarAGoogleSheets()">
-          <span>📊</span> Abrir Google Sheet original
-        </div>
-        <div class="dropdown-item" onclick="descargarCSV()">
-          <span>📄</span> Exportar datos (CSV / Excel)
-        </div>
-        <div class="dropdown-divider"></div>
-        <div class="dropdown-item" onclick="copiarAlPortapapeles()">
-          <span>📋</span> Copiar al portapapeles
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="seccion-tabla" class="tabla-container">
-    <table>
-      <thead>
-        <tr id="encabezado-tabla"></tr>
-        <tr id="fila-totales" class="fila-totales"></tr>
-      </thead>
-      <tbody id="cuerpo-tabla">
-        <tr><td colspan="16" style="text-align:center; padding:20px;">Cargando datos...</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div id="seccion-graficos" class="dashboard-container">
-    <div class="chart-card">
-      <h3>🏆 Top 10 Clientes: VTA+PROY 26 vs PPTO 2027</h3>
-      <canvas id="chartClientes" height="220"></canvas>
-    </div>
-    <div class="chart-card">
-      <h3>📦 Presupuesto 2027 por Familia Agrupada</h3>
-      <canvas id="chartFamilias" height="220"></canvas>
-    </div>
-    <div class="chart-card" style="min-width: 100%;">
-      <h3>📈 Evolución Histórica Global de Ventas vs Presupuesto 2027</h3>
-      <canvas id="chartHistorico" height="120"></canvas>
-    </div>
-  </div>
-
-  <script>
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQg66Bztd1en9-FeRpYSCYw5EpCKENstLhX-JOfgW8Nyfv8woaFwE7H9dMsjwRKaansPEtXAkcVlAnp/pub?output=csv';
-    const SPREADSHEET_ID = '1fxDlguyE0
+    .rojo { color: #e53e3e;
