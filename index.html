@@ -46,11 +46,12 @@
     td.texto { text-align: left; }
     tr:hover { background-color: #f7fafc; }
 
-    input.editable-ppto { width: 75px; padding: 2px 4px; font-weight: bold; border: 1px solid #3182ce; border-radius: 3px; background: #fff; text-align: right; font-size: 10px; }
+    input.editable-ppto { width: 85px; padding: 3px 5px; font-weight: bold; border: 1px solid #3182ce; border-radius: 3px; background: #fff; text-align: right; font-size: 11px; color: #1a202c; }
+    input.editable-ppto:focus { outline: 2px solid #3182ce; background: #ebf8ff; }
+
     .verde { color: #2f855a; font-weight: bold; }
     .rojo { color: #e53e3e; font-weight: bold; }
 
-    /* Etiquetas Pareto */
     .badge-top { background: #c6f6d5; color: #22543d; font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: bold; margin-left: 4px; }
     .badge-sec { background: #e2e8f0; color: #4a5568; font-size: 9px; padding: 1px 5px; border-radius: 3px; margin-left: 4px; }
   </style>
@@ -60,7 +61,7 @@
   <div class="header-title">
     <div>
       <h1>📊 Presupuesto Comercial 2027</h1>
-      <p class="subhead">Modifica <strong>PPTO 2027</strong> para recalcular en tiempo real. Usa los 3 puntos (⋮) para exportar.</p>
+      <p class="subhead">Escribe en las celdas de <strong>PPTO 2027</strong>. Los totales se recalarán automáticamente al salir o presionar Enter.</p>
     </div>
   </div>
 
@@ -78,7 +79,6 @@
       <button id="btn-familia" onclick="cambiarVista('familia')">Por Familia Agrupada (Pareto %)</button>
     </div>
 
-    <!-- Menú Desplegable Tipo Looker Studio -->
     <div class="menu-looker-container">
       <button class="btn-tres-puntos" onclick="toggleMenuLooker(event)">⋮</button>
       <div id="menu-dropdown-looker" class="dropdown-menu-looker">
@@ -120,39 +120,14 @@
     let columnaOrden = 'vta_proy_26';
     let ordenAscendente = false;
 
-    async function cargarDesdeGoogleSheet() {
-      const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(gvizUrl)}`;
-
-      try {
-        const response = await fetch(proxyUrl);
-        const jsonProxy = await response.json();
-        const texto = jsonProxy.contents;
-        
-        if (!texto || texto.includes("PERMISSION_DENIED")) {
-          throw new Error("Permiso denegado en Google Sheets");
-        }
-
-        const jsonTexto = texto.substring(texto.indexOf("{"), texto.lastIndexOf("}") + 1);
-        const jsonDatos = JSON.parse(jsonTexto);
-        
-        datosOriginales = procesarFilasGViz(jsonDatos.table);
-        poblarFiltroEmpresas();
-        filtrarYRenderizar();
-      } catch (error) {
-        console.warn("Fallo el proxy primario, intentando JSONP alternativo...", error);
-        cargarViaJSONP();
-      }
-    }
-
-    function cargarViaJSONP() {
+    function cargarDesdeGoogleSheet() {
       const script = document.createElement('script');
       script.src = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?gid=${GID}&tqx=responseHandler:recibirDatosGViz`;
       script.onerror = function() {
         document.getElementById('cuerpo-tabla').innerHTML = `
           <tr><td colspan="16" style="color:red; text-align:center; padding:20px;">
             ⚠️ <strong>Error de acceso a Google Sheets:</strong><br>
-            Asegúrate de que la hoja esté configurada como <em>"Cualquier persona con el enlace"</em> en el botón <strong>Compartir</strong> de Google Drive.
+            Asegúrate de cambiar el permiso a <em>"Cualquier persona con el enlace"</em> en el botón <strong>Compartir</strong> de tu Google Sheet.
           </td></tr>`;
       };
       document.body.appendChild(script);
@@ -164,7 +139,7 @@
         poblarFiltroEmpresas();
         filtrarYRenderizar();
       } else {
-        document.getElementById('cuerpo-tabla').innerHTML = '<tr><td colspan="16" style="color:red; text-align:center; padding:20px;">Error al cargar datos desde Google Sheets. Verifica los permisos de acceso.</td></tr>';
+        document.getElementById('cuerpo-tabla').innerHTML = '<tr><td colspan="16" style="color:red; text-align:center; padding:20px;">Error al cargar datos desde Google Sheets.</td></tr>';
       }
     };
 
@@ -322,8 +297,8 @@
           <td>$${Math.round(totalVta25).toLocaleString()}</td>
           <td>$${Math.round(totalVta24).toLocaleString()}</td>
           <td>$${Math.round(totalVta23).toLocaleString()}</td>
-          <td style="background:#d6bcfa; color:#2b6cb0;">$${Math.round(totalPpto27).toLocaleString()}</td>
-          <td class="${totVar26_27 >= 0 ? 'verde' : 'rojo'}">${totVar26_27}%</td>
+          <td id="tot-ppto27-cell" style="background:#d6bcfa; color:#2b6cb0;">$${Math.round(totalPpto27).toLocaleString()}</td>
+          <td id="tot-var27-cell" class="${totVar26_27 >= 0 ? 'verde' : 'rojo'}">${totVar26_27}%</td>
           <td class="${totVar26_25 >= 0 ? 'verde' : 'rojo'}">${totVar26_25}%</td>
           <td class="${totVar26_24 >= 0 ? 'verde' : 'rojo'}">${totVar26_24}%</td>
           <td class="${totVar26_23 >= 0 ? 'verde' : 'rojo'}">${totVar26_23}%</td>
@@ -358,8 +333,8 @@
           <td>$${Math.round(totalVta25).toLocaleString()}</td>
           <td>$${Math.round(totalVta24).toLocaleString()}</td>
           <td>$${Math.round(totalVta23).toLocaleString()}</td>
-          <td style="background:#d6bcfa; color:#2b6cb0;">$${Math.round(totalPpto27).toLocaleString()}</td>
-          <td class="${totVar26_27 >= 0 ? 'verde' : 'rojo'}">${totVar26_27}%</td>
+          <td id="tot-ppto27-cell" style="background:#d6bcfa; color:#2b6cb0;">$${Math.round(totalPpto27).toLocaleString()}</td>
+          <td id="tot-var27-cell" class="${totVar26_27 >= 0 ? 'verde' : 'rojo'}">${totVar26_27}%</td>
           <td class="${totVar26_25 >= 0 ? 'verde' : 'rojo'}">${totVar26_25}%</td>
           <td class="${totVar26_24 >= 0 ? 'verde' : 'rojo'}">${totVar26_24}%</td>
           <td class="${totVar26_23 >= 0 ? 'verde' : 'rojo'}">${totVar26_23}%</td>
@@ -436,9 +411,9 @@
             <td>$${Math.round(row.vta_24).toLocaleString()}</td>
             <td>$${Math.round(row.vta_23).toLocaleString()}</td>
             <td style="background:#ebf8ff;">
-              <input type="number" class="editable-ppto" value="${ppto27}" onchange="actualizarPpto(${row.id}, this.value)">
+              <input type="text" class="editable-ppto" value="${ppto27}" oninput="actualizarPptoSinRe-render(${row.id}, this)">
             </td>
-            <td class="${var26_27 >= 0 ? 'verde' : 'rojo'}">${var26_27}%</td>
+            <td id="var27-${row.id}" class="${var26_27 >= 0 ? 'verde' : 'rojo'}">${var26_27}%</td>
             <td class="${var26_25 >= 0 ? 'verde' : 'rojo'}">${var26_25}%</td>
             <td class="${var26_24 >= 0 ? 'verde' : 'rojo'}">${var26_24}%</td>
             <td class="${var26_23 >= 0 ? 'verde' : 'rojo'}">${var26_23}%</td>
@@ -458,7 +433,7 @@
             <td>$${Math.round(row.vta_24).toLocaleString()}</td>
             <td>$${Math.round(row.vta_23).toLocaleString()}</td>
             <td style="background:#ebf8ff;">
-              <input type="number" class="editable-ppto" value="${ppto27}" onchange="actualizarPptoAgrupado('${row.agrupador}', this.value)">
+              <input type="text" class="editable-ppto" value="${ppto27}" oninput="actualizarPptoAgrupadoSinRe-render('${row.agrupador}', this)">
             </td>
             <td class="${var26_27 >= 0 ? 'verde' : 'rojo'}">${var26_27}%</td>
             <td class="${var26_25 >= 0 ? 'verde' : 'rojo'}">${var26_25}%</td>
@@ -470,107 +445,9 @@
       });
     }
 
-    function actualizarPpto(id, valor) {
-      const nuevoValor = parseFloat(valor) || 0;
+    function actualizarPptoSinRe-render(id, inputElement) {
+      const nuevoValor = parseFloat(inputElement.value.replace(/[^0-9.-]+/g, "")) || 0;
       const item = datosOriginales.find(d => d.id === id);
-      if (item) item.ppto_2027 = nuevoValor;
-
-      filtrarYRenderizar();
-    }
-
-    function actualizarPptoAgrupado(agrupadorClave, valorTotalNuevo) {
-      const nuevoTotal = parseFloat(valorTotalNuevo) || 0;
-      const campoClave = vistaActual === 'razon' ? 'razon_social_sec' : 'familias_agrupadas';
-      const itemsGrupo = datosOriginales.filter(d => (d[campoClave] || 'SIN CLASIFICAR') === agrupadorClave);
-
-      const vtaTotalGrupo = itemsGrupo.reduce((s, i) => s + (i.vta_proy_26 || 0), 0);
-
-      itemsGrupo.forEach(item => {
-        if (vtaTotalGrupo > 0) {
-          item.ppto_2027 = Math.round((item.vta_proy_26 / vtaTotalGrupo) * nuevoTotal);
-        } else {
-          item.ppto_2027 = Math.round(nuevoTotal / itemsGrupo.length);
-        }
-      });
-
-      filtrarYRenderizar();
-    }
-
-    function exportarAGoogleSheets() {
-      cerrarMenuLooker();
-      window.open(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit#gid=${GID}`, '_blank');
-    }
-
-    function descargarCSV() {
-      cerrarMenuLooker();
-      const empresaSeleccionada = document.getElementById('select-empresa').value;
-      let datosExportar = datosOriginales;
-
-      if (empresaSeleccionada !== 'TODOS') {
-        datosExportar = datosOriginales.filter(d => d.id_empresa === empresaSeleccionada);
-      }
-
-      let csvContent = "\uFEFF";
-      csvContent += "Id_empresa,razon_social_sec,Familias Agrupadas,nombre_familia,PPTO 2026,VTA + PROY 26,VTA 25,VTA 24,VTA 23,PPTO 2027,VTA 26VS27,VTA 26VS25,VTA 26VS24,VTA 26VS23\n";
-
-      datosExportar.forEach(d => {
-        const v26 = d.vta_proy_26 || 0;
-        const p27 = d.ppto_2027 || 0;
-        const var27 = calcVar(v26, p27);
-        const var25 = calcVar(v26, d.vta_25);
-        const var24 = calcVar(v26, d.vta_24);
-        const var23 = calcVar(v26, d.vta_23);
-
-        const fila = [
-          `"${d.id_empresa}"`,
-          `"${d.razon_social_sec}"`,
-          `"${d.familias_agrupadas}"`,
-          `"${d.nombre_familia}"`,
-          d.ppto_2026,
-          v26,
-          d.vta_25,
-          d.vta_24,
-          d.vta_23,
-          p27,
-          `"${var27}%"`,
-          `"${var25}%"`,
-          `"${var24}%"`,
-          `"${var23}%"`
-        ];
-        csvContent += fila.join(",") + "\n";
-      });
-
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", `Presupuesto_2027_${empresaSeleccionada}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-
-    function copiarAlPortapapeles() {
-      cerrarMenuLooker();
-      const empresaSeleccionada = document.getElementById('select-empresa').value;
-      let datosExportar = datosOriginales;
-
-      if (empresaSeleccionada !== 'TODOS') {
-        datosExportar = datosOriginales.filter(d => d.id_empresa === empresaSeleccionada);
-      }
-
-      let textoClip = "Id_empresa\trazon_social_sec\tFamilias Agrupadas\tnombre_familia\tPPTO 2026\tVTA + PROY 26\tVTA 25\tVTA 24\tVTA 23\tPPTO 2027\n";
-
-      datosExportar.forEach(d => {
-        textoClip += `${d.id_empresa}\t${d.razon_social_sec}\t${d.familias_agrupadas}\t${d.nombre_familia}\t${d.ppto_2026}\t${d.vta_proy_26}\t${d.vta_25}\t${d.vta_24}\t${d.vta_23}\t${d.ppto_2027}\n`;
-      });
-
-      navigator.clipboard.writeText(textoClip).then(() => {
-        alert("¡Datos copiados al portapapeles! Ya puedes pegarlos en Excel o Google Sheets con Ctrl+V.");
-      });
-    }
-
-    cargarDesdeGoogleSheet();
-  </script>
-</body>
-</html>
+      if (item) {
+        item.ppto_2027 = nuevoValor;
+        const v26 = Number(item.vta_proy
