@@ -11,7 +11,7 @@
     h1 { color: #1a365d; font-size: 18px; margin: 0; }
     .subhead { color: #4a5568; font-size: 11px; margin: 0; }
 
-    .panel-controles { display: flex; gap: 12px; align-items: center; background: #fff; padding: 8px 12px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 10px; flex-wrap: wrap; }
+    .panel-controles { display: flex; gap: 12px; align-items: center; background: #fff; padding: 8px 12px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 10px; position: relative; }
     .filtro-item { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: bold; }
     select { padding: 4px 8px; border-radius: 4px; border: 1px solid #cbd5e0; background: #f8fafc; font-size: 12px; }
     
@@ -19,8 +19,16 @@
     .btn-group button { border: none; background: transparent; padding: 5px 10px; font-size: 11px; font-weight: 600; cursor: pointer; border-radius: 3px; color: #4a5568; }
     .btn-group button.activo { background: #2b6cb0; color: white; }
 
-    .btn-descargar { background: #2f855a; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: background 0.2s; margin-left: auto; }
-    .btn-descargar:hover { background: #276749; }
+    /* Menú Estilo Looker Studio (3 Puntos ⋮) */
+    .menu-looker-container { margin-left: auto; position: relative; }
+    .btn-tres-puntos { background: transparent; border: 1px solid #cbd5e0; border-radius: 4px; padding: 4px 10px; font-size: 16px; font-weight: bold; cursor: pointer; color: #4a5568; }
+    .btn-tres-puntos:hover { background: #edf2f7; color: #1a365d; }
+
+    .dropdown-menu-looker { display: none; position: absolute; right: 0; top: 32px; background: #ffffff; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 220px; z-index: 100; border: 1px solid #e2e8f0; padding: 4px 0; }
+    .dropdown-menu-looker.show { display: block; }
+    .dropdown-item { padding: 8px 12px; font-size: 12px; color: #2d3748; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 500; }
+    .dropdown-item:hover { background: #ebf8ff; color: #2b6cb0; }
+    .dropdown-divider { height: 1px; background: #e2e8f0; margin: 4px 0; }
 
     .tabla-container { width: 100%; overflow-x: auto; background: #fff; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); max-height: 80vh; overflow-y: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 10px; text-align: left; }
@@ -52,7 +60,7 @@
   <div class="header-title">
     <div>
       <h1>📊 Presupuesto Comercial 2027</h1>
-      <p class="subhead">Haz clic en los encabezados para <strong>ordenar de mayor a menor</strong>. Modifica <strong>PPTO 2027</strong> para recalcular en tiempo real.</p>
+      <p class="subhead">Modifica <strong>PPTO 2027</strong> para recalcular en tiempo real. Usa los 3 puntos (⋮) para exportar.</p>
     </div>
   </div>
 
@@ -70,7 +78,25 @@
       <button id="btn-familia" onclick="cambiarVista('familia')">Por Familia Agrupada (Pareto %)</button>
     </div>
 
-    <button class="btn-descargar" onclick="descargarCSV()">📥 Descargar a CSV / Excel</button>
+    <!-- Menú Desplegable Tipo Looker Studio -->
+    <div class="menu-looker-container">
+      <button class="btn-tres-puntos" onclick="toggleMenuLooker(event)">⋮</button>
+      <div id="menu-dropdown-looker" class="dropdown-menu-looker">
+        <div class="dropdown-item" onclick="exportarAGoogleSheets()">
+          <span>📊</span> Exportar a Google Sheets
+        </div>
+        <div class="dropdown-item" onclick="descargarCSV()">
+          <span>📄</span> Exportar datos (CSV / Excel)
+        </div>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-item" onclick="copiarAlPortapapeles()">
+          <span>📋</span> Copiar al portapapeles
+        </div>
+        <div class="dropdown-item" onclick="restablecerOrden()">
+          <span>🔄</span> Restablecer orden
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="tabla-container">
@@ -92,7 +118,7 @@
     let datosOriginales = [];
     let vistaActual = 'detalle';
     let columnaOrden = 'vta_proy_26';
-    let ordenAscendente = false; // Por defecto: mayor a menor
+    let ordenAscendente = false;
 
     function cargarDesdeGoogleSheet() {
       const script = document.createElement('script');
@@ -106,7 +132,7 @@
         poblarFiltroEmpresas();
         filtrarYRenderizar();
       } else {
-        document.getElementById('cuerpo-tabla').innerHTML = '<tr><td colspan="16" style="color:red; text-align:center; padding:20px;">Error al cargar datos. Verifica los permisos de tu Google Sheet.</td></tr>';
+        document.getElementById('cuerpo-tabla').innerHTML = '<tr><td colspan="16" style="color:red; text-align:center; padding:20px;">Error al cargar datos desde Google Sheets.</td></tr>';
       }
     };
 
@@ -120,118 +146,4 @@
 
         data.push({
           id: i + 1,
-          id_empresa: obtenerVal(c[0]),
-          razon_social_sec: obtenerVal(c[1]),
-          familias_agrupadas: obtenerVal(c[2]),
-          nombre_familia: obtenerVal(c[3]),
-          ppto_2026: limpiarNumero(obtenerVal(c[4])),
-          vta_proy_26: limpiarNumero(obtenerVal(c[5])),
-          porc_proy: obtenerVal(c[6]) || '0%',
-          vta_25: limpiarNumero(obtenerVal(c[7])),
-          vta_24: limpiarNumero(obtenerVal(c[8])),
-          vta_23: limpiarNumero(obtenerVal(c[9])),
-          ppto_2027: limpiarNumero(obtenerVal(c[10])) || 0
-        });
-      }
-      return data;
-    }
-
-    function obtenerVal(celda) {
-      if (!celda) return '-';
-      return celda.v !== null && celda.v !== undefined ? celda.v.toString().trim() : '-';
-    }
-
-    function limpiarNumero(val) {
-      if (!val || val === '-') return 0;
-      const num = parseFloat(val.toString().replace(/[^0-9.-]+/g, ""));
-      return isNaN(num) ? 0 : num;
-    }
-
-    function poblarFiltroEmpresas() {
-      const empresas = [...new Set(datosOriginales.map(d => d.id_empresa))].filter(b => b && b !== '-');
-      const select = document.getElementById('select-empresa');
-      select.innerHTML = '<option value="TODOS">🌍 Todas las Empresas</option>';
-      empresas.forEach(emp => {
-        select.innerHTML += `<option value="${emp}">${emp}</option>`;
-      });
-    }
-
-    function cambiarVista(modo) {
-      vistaActual = modo;
-      document.querySelectorAll('.btn-group button').forEach(b => b.classList.remove('activo'));
-      if (modo === 'detalle') document.getElementById('btn-detalle').classList.add('activo');
-      if (modo === 'razon') document.getElementById('btn-razon').classList.add('activo');
-      if (modo === 'familia') document.getElementById('btn-familia').classList.add('activo');
-      filtrarYRenderizar();
-    }
-
-    function calcVar(vta, base) {
-      if (!base || base === 0) return 0;
-      return (((vta / base) - 1) * 100).toFixed(0);
-    }
-
-    function ordenarPor(col) {
-      if (columnaOrden === col) {
-        ordenAscendente = !ordenAscendente;
-      } else {
-        columnaOrden = col;
-        ordenAscendente = false; // Por defecto mayor a menor al cambiar columna
-      }
-      filtrarYRenderizar();
-    }
-
-    function filtrarYRenderizar() {
-      const empresaSeleccionada = document.getElementById('select-empresa').value;
-      let datosFiltrados = datosOriginales;
-
-      if (empresaSeleccionada !== 'TODOS') {
-        datosFiltrados = datosOriginales.filter(d => d.id_empresa === empresaSeleccionada);
-      }
-
-      renderizarTabla(datosFiltrados);
-    }
-
-    function renderizarTabla(datos) {
-      const thead = document.getElementById('encabezado-tabla');
-      const trTotales = document.getElementById('fila-totales');
-      const tbody = document.getElementById('cuerpo-tabla');
-
-      if (datos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="16" style="padding:20px; text-align:center;">No hay registros disponibles.</td></tr>';
-        trTotales.innerHTML = '';
-        return;
-      }
-
-      // Sumatorias totales
-      const totalPpto26 = datos.reduce((s, d) => s + (d.ppto_2026 || 0), 0);
-      const totalVta26  = datos.reduce((s, d) => s + (d.vta_proy_26 || 0), 0);
-      const totalVta25  = datos.reduce((s, d) => s + (d.vta_25 || 0), 0);
-      const totalVta24  = datos.reduce((s, d) => s + (d.vta_24 || 0), 0);
-      const totalVta23  = datos.reduce((s, d) => s + (d.vta_23 || 0), 0);
-      const totalPpto27 = datos.reduce((s, d) => s + (d.ppto_2027 || 0), 0);
-
-      const totVar26_27 = calcVar(totalVta26, totalPpto27);
-      const totVar26_25 = calcVar(totalVta26, totalVta25);
-      const totVar26_24 = calcVar(totalVta26, totalVta24);
-      const totVar26_23 = calcVar(totalVta26, totalVta23);
-      const totPorcProy = totalPpto26 > 0 ? ((totalVta26 / totalPpto26) * 100).toFixed(0) + '%' : '0%';
-
-      let filasParaMostrar = [];
-
-      if (vistaActual === 'detalle') {
-        thead.innerHTML = `
-          <th onclick="ordenarPor('id_empresa')">Id_empresa ↕</th>
-          <th onclick="ordenarPor('razon_social_sec')">razon_social_sec ↕</th>
-          <th onclick="ordenarPor('familias_agrupadas')">Familias Agrupadas ↕</th>
-          <th onclick="ordenarPor('nombre_familia')">nombre_familia ↕</th>
-          <th onclick="ordenarPor('ppto_2026')">PPTO 2026 ↕</th>
-          <th onclick="ordenarPor('vta_proy_26')">VTA + PROY ↕</th>
-          <th>%PROY</th>
-          <th onclick="ordenarPor('vta_25')">VTA 25 ↕</th>
-          <th onclick="ordenarPor('vta_24')">VTA 24 ↕</th>
-          <th onclick="ordenarPor('vta_23')">VTA 23 ↕</th>
-          <th class="highlight" onclick="ordenarPor('ppto_2027')">PPTO 2027 ↕</th>
-          <th>VTA 26VS27</th>
-          <th>VTA 26VS25</th>
-          <th>VTA 26VS24</th>
-          <th>VTA 26VS23</th>
+          id_
