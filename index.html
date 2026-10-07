@@ -335,15 +335,7 @@
   </div>
 
   <script>
-    // DATOS DE RESPALDO DE EMERGENCIA (INICIO INSTANTÁNEO)
-    let datosOriginales = [
-      { id: 1, id_empresa: "PRECISION BOLIVIA", gerencia: "OCCIDENTE", razon_social_sec: "ARMANDO PEDRO VEDIA LOPEZ", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROL Y SOFTWARE DE VISUALIZACION", ppto_2026: 0, vta_proy_26: 865, porc_proy: "0%", vta_23: 0, vta_24: 0, vta_25: 0, ppto_2027: 0 },
-      { id: 2, id_empresa: "PRECISION BOLIVIA", gerencia: "OCCIDENTE", razon_social_sec: "BANCO PYME DE LA COMUNIDAD S.A.", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROLADORES Y REDES", ppto_2026: 0, vta_proy_26: 662, porc_proy: "0%", vta_23: 0, vta_24: 0, vta_25: 0, ppto_2027: 0 },
-      { id: 3, id_empresa: "PRECISION CHILE", gerencia: "MINERIA", razon_social_sec: "MINERA ESCONDIDA LTDA", familias_agrupadas: "CONTROL INDUSTRIAL", nombre_familia: "CONTROL INDUSTRIAL", ppto_2026: 120000, vta_proy_26: 145000, porc_proy: "120%", vta_23: 95000, vta_24: 110000, vta_25: 130000, ppto_2027: 0 },
-      { id: 4, id_empresa: "PRECISION PERU", gerencia: "SUR", razon_social_sec: "SOUTHERN PERU COPPER CORP", familias_agrupadas: "VARIADORES DE FRECUENCIA", nombre_familia: "VARIADORES DE FRECUENCIA", ppto_2026: 85000, vta_proy_26: 92000, porc_proy: "108%", vta_23: 65000, vta_24: 79000, vta_25: 88000, ppto_2027: 0 },
-      { id: 5, id_empresa: "PRECISION ECUADOR", gerencia: "COSTA", razon_social_sec: "HOLCIM ECUADOR S.A.", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROLADORES Y REDES", ppto_2026: 50000, vta_proy_26: 58000, porc_proy: "116%", vta_23: 40000, vta_24: 48000, vta_25: 52000, ppto_2027: 0 }
-    ];
-
+    let datosOriginales = [];
     let metasMacroFamilia = {};
     let pestanaActiva = 'familia-macro';
     let paisSeleccionado = 'TODOS';
@@ -361,7 +353,7 @@
     let chartHistoricoInst = null;
 
     let progresoActual = 0;
-    let splashOculto = false;
+    let intervaloProgreso = null;
 
     function actualizarBarraProgreso(porcentaje) {
       progresoActual = Math.min(100, Math.max(progresoActual, porcentaje));
@@ -372,28 +364,29 @@
     }
 
     function ocultarSplash() {
-      if (splashOculto) return;
-      splashOculto = true;
       actualizarBarraProgreso(100);
+      if (intervaloProgreso) clearInterval(intervaloProgreso);
       setTimeout(() => {
         const splash = document.getElementById('splash-screen');
         if (splash) splash.classList.add('oculto');
-      }, 200);
+      }, 300);
     }
 
     function iniciarAplicacion() {
-      // Avanzar barra de progreso de forma continua
-      actualizarBarraProgreso(25);
-      
+      // Simulación de carga progresiva suave
+      intervaloProgreso = setInterval(() => {
+        if (progresoActual < 90) {
+          actualizarBarraProgreso(progresoActual + 15);
+        }
+      }, 100);
+
+      // Cargar caché inmediato
       const cacheGuardado = localStorage.getItem('presupuesto_cache_datos');
       const edicionesLocales = localStorage.getItem('presupuesto_ediciones_2027');
       const metasGuardadas = localStorage.getItem('presupuesto_metas_macro');
 
       if (cacheGuardado) {
-        try { 
-          const datosCache = JSON.parse(cacheGuardado);
-          if (datosCache.length > 0) datosOriginales = datosCache;
-        } catch(e){}
+        try { datosOriginales = JSON.parse(cacheGuardado); } catch(e){}
       }
 
       if (edicionesLocales) {
@@ -409,28 +402,37 @@
         try { metasMacroFamilia = JSON.parse(metasGuardadas); } catch(e){}
       }
 
-      actualizarBarraProgreso(60);
-      filtrarYRenderizar();
-      actualizarEstado("⚡ Carga Instantánea (" + datosOriginales.length + " filas)", "status-badge");
-
-      // GARANTÍA ABSOLUTA: Ocultar la portada a los 0.6 segundos independientemente de la red
-      setTimeout(() => {
-        actualizarBarraProgreso(90);
+      if (datosOriginales.length > 0) {
+        filtrarYRenderizar();
+        actualizarEstado("⚡ Carga Instantánea (" + datosOriginales.length + " filas)", "status-badge");
         ocultarSplash();
-      }, 600);
+      }
 
-      // Cargar archivo CSV en segundo plano
+      // Failsafe absoluto de 1.2 segundos para quitar splash sí o sí
+      setTimeout(() => {
+        ocultarSplash();
+      }, 1200);
+
+      // Cargar CSV de fondo
       fetch('datos_2027.csv?ts=' + Date.now())
-        .then(res => { if (res.ok) return res.text(); throw new Error(); })
+        .then(res => {
+          if (res.ok) return res.text();
+          throw new Error("CSV no hallado");
+        })
         .then(texto => {
           const filas = parsearCSV(texto);
           if (filas.length > 1) {
             procesarFilasCSV(filas);
             actualizarEstado("✅ Sincronizado (" + (filas.length - 1) + " filas)", "status-badge");
           }
+          ocultarSplash();
         })
         .catch(err => {
-          console.warn("Utilizando datos locales...");
+          if (datosOriginales.length === 0) {
+            document.getElementById('cuerpo-tabla').innerHTML = '<tr><td colspan="16" style="text-align:center; padding:20px;">Presione el botón <strong>📁 Cargar nuevo CSV</strong> para seleccionar el archivo local.</td></tr>';
+            actualizarEstado("⚠ Cargar CSV local", "status-badge");
+          }
+          ocultarSplash();
         });
     }
 
@@ -1197,4 +1199,99 @@
           labels: labelsFam,
           datasets: [
             { label: 'PPTO 2026', data: topFamilias.map(f => f[1].p26), backgroundColor: '#805ad5' },
-            { label: 'PPTO
+            { label: 'PPTO 2027 (Suma Clientes)', data: topFamilias.map(f => f[1].p27), backgroundColor: '#38a169' }
+          ]
+        },
+        options: { indexAxis: 'y', responsive: true, plugins: { legend: { position: 'bottom' } } }
+      });
+
+      const sumV23 = datos.reduce((s, d) => s + (d.vta_23 || 0), 0);
+      const sumV24 = datos.reduce((s, d) => s + (d.vta_24 || 0), 0);
+      const sumV25 = datos.reduce((s, d) => s + (d.vta_25 || 0), 0);
+      const sumV26 = datos.reduce((s, d) => s + (d.vta_proy_26 || 0), 0);
+      const sumP26 = datos.reduce((s, d) => s + (d.ppto_2026 || 0), 0);
+      const sumP27 = datos.reduce((s, d) => s + (d.ppto_2027 || 0), 0);
+
+      if (chartHistoricoInst) chartHistoricoInst.destroy();
+      chartHistoricoInst = new Chart(document.getElementById('chartHistorico'), {
+        type: 'line',
+        data: {
+          labels: ['VTA 23', 'VTA 24', 'VTA 25', 'VTA + PROY 26', 'PPTO 2026', 'PPTO 2027 Detalle'],
+          datasets: [
+            {
+              label: 'Ventas Reales / Proyectadas ($)',
+              data: [sumV23, sumV24, sumV25, sumV26, null, null],
+              borderColor: '#2b6cb0',
+              backgroundColor: 'rgba(49, 130, 206, 0.15)',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 6
+            },
+            {
+              label: 'Metas Presupuestadas ($)',
+              data: [null, null, null, sumV26, sumP26, sumP27],
+              borderColor: '#38a169',
+              borderDash: [6, 6],
+              backgroundColor: 'transparent',
+              pointRadius: 8,
+              pointStyle: 'rectRot'
+            }
+          ]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+      });
+    }
+
+    function descargarCSV() {
+      cerrarMenuLooker();
+      const datosExportar = obtenerDatosFiltrados();
+
+      let csvContent = "\uFEFF";
+      csvContent += "Id_empresa,Gerencia,razon_social_sec,Familias Agrupadas,nombre_familia,PPTO 2026,VTA + PROY 26,VTA 23,VTA 24,VTA 25,PPTO 2027\n";
+
+      datosExportar.forEach(function(d) {
+        const fila = [
+          '"' + d.id_empresa + '"',
+          '"' + (d.gerencia || '-') + '"',
+          '"' + d.razon_social_sec + '"',
+          '"' + d.familias_agrupadas + '"',
+          '"' + d.nombre_familia + '"',
+          d.ppto_2026,
+          d.vta_proy_26,
+          d.vta_23,
+          d.vta_24,
+          d.vta_25,
+          d.ppto_2027
+        ];
+        csvContent += fila.join(",") + "\n";
+      });
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", 'Presupuesto_2027.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function copiarAlPortapapeles() {
+      cerrarMenuLooker();
+      const datosExportar = obtenerDatosFiltrados();
+
+      let textoClip = "Id_empresa\tGerencia\trazon_social_sec\tFamilias Agrupadas\tnombre_familia\tPPTO 2026\tVTA + PROY 26\tVTA 23\tVTA 24\tVTA 25\tPPTO 2027\n";
+
+      datosExportar.forEach(function(d) {
+        textoClip += d.id_empresa + '\t' + (d.gerencia || '-') + '\t' + d.razon_social_sec + '\t' + d.familias_agrupadas + '\t' + d.nombre_familia + '\t' + d.ppto_2026 + '\t' + d.vta_proy_26 + '\t' + d.vta_23 + '\t' + d.vta_24 + '\t' + d.vta_25 + '\t' + d.ppto_2027 + '\n';
+      });
+
+      navigator.clipboard.writeText(textoClip).then(function() {
+        alert("¡Datos copiados al portapapeles!");
+      });
+    }
+
+    iniciarAplicacion();
+  </script>
+</body>
+</html>
