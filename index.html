@@ -42,7 +42,7 @@
     
     .th-container { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
     .btn-filter-excel { background: transparent; border: none; color: #cbd5e0; cursor: pointer; font-size: 10px; padding: 1px 3px; border-radius: 2px; }
-    .btn-filter-excel:hover, .btn-filter-excel.activo { color: #fff; background: rgba(255,255,255,0.2); }
+    .btn-filter-excel:hover, .btn-filter-excel.activo { color: #fff; background: rgba(255,255,255,0.25); }
 
     /* POPUP DE FILTRO ESTILO EXCEL */
     .excel-filter-popup { display: none; position: absolute; background: #ffffff; color: #2d3748; border: 1px solid #cbd5e0; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); width: 250px; z-index: 500; font-size: 11px; padding: 8px; text-align: left; }
@@ -387,7 +387,7 @@
       else render();
     }
 
-    /* FILTROS EMERGENTES ESTILO EXCEL */
+    /* FILTROS EMERGENTES ESTILO EXCEL CON ÍCONO 🔻 */
     function abrirPopupFiltroExcel(event, campo, esNum) {
       event.stopPropagation();
       campoPopupActual = campo;
@@ -469,7 +469,7 @@
       });
     }
 
-    /* ORDENAMIENTO Y PARETO 80/20 BASADO ESTRUCTURADAMENTE EN VTA + PROY 2026 */
+    /* PARETO 80/20 Y ORDENAMIENTO BASADO EN VTA + PROY 2026 */
     function getMacroData() {
       const map = {};
       let baseP = datosOriginales;
@@ -493,7 +493,6 @@
         map[fam].vta_23 += Number(item.vta_23 || 0);
       });
 
-      // ORDENAR POR VTA + PROY 2026 DE MAYOR A MENOR (PARETO)
       const totVta26 = baseP.reduce((s, d) => s + (d.vta_proy_26 || 0), 0);
       let list = Object.values(map).sort((a, b) => b.vta_proy_26 - a.vta_proy_26);
 
@@ -606,7 +605,6 @@
             mapC[cli].hijos.push(item);
           });
 
-          // ORDENAR CLIENTES POR VTA + PROY 2026
           const totV26Cli = Object.values(mapC).reduce((s, c) => s + c.vta_proy_26, 0);
           let listC = Object.values(mapC).sort((a, b) => b.vta_proy_26 - a.vta_proy_26);
 
