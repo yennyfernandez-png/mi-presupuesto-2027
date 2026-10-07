@@ -181,4 +181,328 @@
   </div>
 
   <div class="layout-pestana2">
-    <div id="seccion-tabla" class="tabla
+    <div id="seccion-tabla" class="tabla-container">
+      <table>
+        <thead>
+          <tr id="encabezado-tabla"></tr>
+          <tr id="fila-totales" class="fila-totales"></tr>
+        </thead>
+        <tbody id="cuerpo-tabla">
+          <tr><td colspan="16" style="text-align:center; padding:20px;">Iniciando datos...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="panel-cuadre-lateral" class="panel-cuadre-lateral" style="display:none;">
+      <h3>⚖️ Cuadre por Familia (Macro vs Clientes)</h3>
+      <table style="width:100%;">
+        <thead>
+          <tr>
+            <th style="font-size:9px;">Familia Agrupada</th>
+            <th style="font-size:9px;">Meta P1</th>
+            <th style="font-size:9px;">Sum P2</th>
+            <th style="font-size:9px;">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="cuerpo-panel-cuadre">
+          <tr><td colspan="4" style="text-align:center;">Calculando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="seccion-graficos" class="dashboard-container">
+    <div class="chart-card">
+      <h3>🏆 Top 10 Clientes (Pestaña 2 Detallada)</h3>
+      <canvas id="chartClientes" height="230"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>📦 Presupuesto 2027 vs 2026 por Familia</h3>
+      <canvas id="chartFamilias" height="230"></canvas>
+    </div>
+    <div class="chart-card" style="min-width: 100%;">
+      <h3>📈 Tendencia Histórica Global de Ventas vs Presupuesto 2027</h3>
+      <canvas id="chartHistorico" height="130"></canvas>
+    </div>
+  </div>
+
+  <script>
+    let datosOriginales = [];
+    let metasMacroFamilia = {};
+    let pestanaActiva = 'familia-macro';
+    let paisSeleccionado = 'TODOS';
+    let modoVistaMicro = 'cliente';
+    let clientesExpandidos = {};
+
+    let columnaOrden = 'vta_proy_26';
+    let ordenAscendente = false;
+
+    let filtrosExcelActivos = {};
+    let campoPopupActual = null;
+
+    let chartClientesInst = null;
+    let chartFamiliasInst = null;
+    let chartHistoricoInst = null;
+
+    function iniciarAplicacion() {
+      const cacheGuardado = localStorage.getItem('presupuesto_cache_datos');
+      const edicionesLocales = localStorage.getItem('presupuesto_ediciones_2027');
+      const metasGuardadas = localStorage.getItem('presupuesto_metas_macro');
+
+      if (cacheGuardado) {
+        try { datosOriginales = JSON.parse(cacheGuardado); } catch(e){}
+      }
+
+      if (edicionesLocales) {
+        try {
+          const mapaEdiciones = JSON.parse(edicionesLocales);
+          datosOriginales.forEach(function(d) {
+            if (mapaEdiciones[d.id] !== undefined) d.ppto_2027 = mapaEdiciones[d.id];
+          });
+        } catch(e){}
+      }
+
+      if (metasGuardadas) {
+        try { metasMacroFamilia = JSON.parse(metasGuardadas); } catch(e){}
+      }
+
+      if (datosOriginales.length > 0) {
+        filtrarYRenderizar();
+        actualizarEstado("⚡ Carga Instantánea (" + datosOriginales.length + " filas)", "status-badge");
+      }
+
+      const controller = new AbortController();
+      const signal = controller.signal;
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+      fetch('datos_2027.csv?ts=' + Date.now(), { signal })
+        .then(res => {
+          clearTimeout(timeoutId);
+          if (res.ok) return res.text();
+          throw new Error("Respuesta no ok");
+        })
+        .then(texto => {
+          const filas = parsearCSV(texto);
+          if (filas.length > 1) {
+            procesarFilasCSV(filas);
+            actualizarEstado("✅ Sincronizado (" + (filas.length - 1) + " filas)", "status-badge");
+          }
+        })
+        .catch(err => {
+          if (datosOriginales.length === 0) {
+            document.getElementById('cuerpo-tabla').innerHTML = '<tr><td colspan="16" style="text-align:center; padding:20px;">Use el botón <strong>📁 Cargar nuevo CSV</strong> para seleccionar el archivo <code>datos_2027.csv</code>.</td></tr>';
+            actualizarEstado("⚠ Seleccione CSV local", "status-badge");
+          }
+        });
+    }
+
+    function cargarDesdeArchivoLocal(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const contenido = e.target.result;
+        const filas = parsearCSV(contenido);
+        procesarFilasCSV(filas);
+        actualizarEstado("✅ " + (filas.length - 1) + " Filas Cargadas", "status-badge");
+      };
+      reader.readAsText(file);
+    }
+
+    function parsearCSV(texto) {
+      const lineas = texto.split(/\r\n|\n/);
+      const resultado = [];
+      for (let i = 0; i < lineas.length; i++) {
+        const linea = lineas[i].trim();
+        if (!linea) continue;
+
+        const celdas = [];
+        let dentroComillas = false;
+        let campo = '';
+
+        for (let j = 0; j < linea.length; j++) {
+          const char = linea[j];
+          if (char === '"') {
+            dentroComillas = !dentroComillas;
+          } else if (char === ',' && !dentroComillas) {
+            celdas.push(campo);
+            campo = '';
+          } else {
+            campo += char;
+          }
+        }
+        celdas.push(campo);
+        resultado.push(celdas);
+      }
+      return resultado;
+    }
+
+    function procesarFilasCSV(filas) {
+      const data = [];
+      for (let i = 1; i < filas.length; i++) {
+        const c = filas[i];
+        if (!c || c.length < 4) continue;
+
+        // MAPEO SEGÚN LA ESTRUCTURA DEL CSV:
+        // c[0]: id_empresa, c[1]: gerencia, c[2]: razon_social_sec, c[3]: familias_agrupadas,
+        // c[4]: nombre_familia, c[5]: ppto_2026, c[6]: vta_proy_26, c[7]: vta_23, c[8]: vta_24,
+        // c[9]: vta_25, c[10]: ppto_2027
+        data.push({
+          id: i,
+          id_empresa: limpiarTexto(c[0]),
+          gerencia: limpiarTexto(c[1]),
+          razon_social_sec: limpiarTexto(c[2]),
+          familias_agrupadas: limpiarTexto(c[3]),
+          nombre_familia: limpiarTexto(c[4]),
+          ppto_2026: limpiarNumero(c[5]),
+          vta_proy_26: limpiarNumero(c[6]),
+          porc_proy: '0%',
+          vta_23: limpiarNumero(c[7]),
+          vta_24: limpiarNumero(c[8]),
+          vta_25: limpiarNumero(c[9]),
+          ppto_2027: limpiarNumero(c[10]) || 0
+        });
+      }
+
+      const edicionesLocales = localStorage.getItem('presupuesto_ediciones_2027');
+      if (edicionesLocales) {
+        try {
+          const mapaEdiciones = JSON.parse(edicionesLocales);
+          data.forEach(function(d) {
+            if (mapaEdiciones[d.id] !== undefined) d.ppto_2027 = mapaEdiciones[d.id];
+          });
+        } catch(e) {}
+      }
+
+      datosOriginales = data;
+      localStorage.setItem('presupuesto_cache_datos', JSON.stringify(datosOriginales));
+      filtrarYRenderizar();
+    }
+
+    function limpiarTexto(val) {
+      if (!val) return '-';
+      return val.toString().replace(/^"|"$/g, '').trim();
+    }
+
+    function limpiarNumero(val) {
+      if (!val || val === '-') return 0;
+      let str = val.toString().replace(/^"|"$/g, '').trim();
+      
+      if (str.includes('.') && str.includes(',')) {
+        if (str.indexOf('.') < str.indexOf(',')) {
+          str = str.replace(/\./g, '').replace(',', '.');
+        } else {
+          str = str.replace(/,/g, '');
+        }
+      } else if (str.includes(',')) {
+        str = str.replace(',', '.');
+      }
+
+      const num = parseFloat(str.replace(/[^0-9.-]+/g, ""));
+      return isNaN(num) ? 0 : num;
+    }
+
+    function formatearNumeroVisual(num) {
+      if (!num || isNaN(num)) return "0";
+      return Math.round(num).toLocaleString('en-US');
+    }
+
+    function calcVar(vta, base) {
+      const numVta = Number(vta) || 0;
+      const numBase = Number(base) || 0;
+      if (numBase === 0) return numVta > 0 ? 100 : 0;
+      return (((numVta / numBase) - 1) * 100).toFixed(0);
+    }
+
+    function actualizarEstado(mensaje, clase) {
+      const el = document.getElementById('status-indicator');
+      if (el) {
+        el.innerText = mensaje;
+        el.className = 'status-badge ' + clase;
+      }
+    }
+
+    function guardarLocalmente() {
+      const mapaEdiciones = {};
+      datosOriginales.forEach(function(d) {
+        mapaEdiciones[d.id] = d.ppto_2027;
+      });
+      localStorage.setItem('presupuesto_ediciones_2027', JSON.stringify(mapaEdiciones));
+      localStorage.setItem('presupuesto_metas_macro', JSON.stringify(metasMacroFamilia));
+      localStorage.setItem('presupuesto_cache_datos', JSON.stringify(datosOriginales));
+      alert("✅ ¡Presupuesto guardado correctamente!");
+    }
+
+    function filtrarPorPais(pais, btn) {
+      paisSeleccionado = pais;
+      document.querySelectorAll('.btn-group-paises .btn-pais').forEach(b => b.classList.remove('activo'));
+      if (btn) btn.classList.add('activo');
+      filtrarYRenderizar();
+    }
+
+    function cambiarModoVistaMicro(modo) {
+      modoVistaMicro = modo;
+      document.querySelectorAll('.btn-group-vistas .btn-vista').forEach(b => b.classList.remove('activo'));
+      if (modo === 'detallado') document.getElementById('btn-vista-detallado').classList.add('activo');
+      if (modo === 'cliente') document.getElementById('btn-vista-cliente').classList.add('activo');
+      filtrarYRenderizar();
+    }
+
+    function mostrarPestana(pestana) {
+      pestanaActiva = pestana;
+      document.getElementById('tab-familia-macro').classList.remove('activo');
+      document.getElementById('tab-detalle-micro').classList.remove('activo');
+      document.getElementById('tab-graficos').classList.remove('activo');
+
+      const panelLateral = document.getElementById('panel-cuadre-lateral');
+      const controlesVistas = document.getElementById('controles-modo-vista');
+
+      if (pestana === 'familia-macro') {
+        document.getElementById('tab-familia-macro').classList.add('activo');
+        document.getElementById('seccion-tabla').style.display = 'block';
+        document.getElementById('seccion-graficos').style.display = 'none';
+        if (panelLateral) panelLateral.style.display = 'none';
+        if (controlesVistas) controlesVistas.style.display = 'none';
+        filtrarYRenderizar();
+      } else if (pestana === 'detalle-micro') {
+        document.getElementById('tab-detalle-micro').classList.add('activo');
+        document.getElementById('seccion-tabla').style.display = 'block';
+        document.getElementById('seccion-graficos').style.display = 'none';
+        if (panelLateral) panelLateral.style.display = 'block';
+        if (controlesVistas) controlesVistas.style.display = 'flex';
+        filtrarYRenderizar();
+      } else {
+        document.getElementById('tab-graficos').classList.add('activo');
+        document.getElementById('seccion-tabla').style.display = 'none';
+        document.getElementById('seccion-graficos').style.display = 'flex';
+        if (panelLateral) panelLateral.style.display = 'none';
+        if (controlesVistas) controlesVistas.style.display = 'none';
+        actualizarDashboard();
+      }
+    }
+
+    function abrirPopupFiltroExcel(event, campo, esNumero) {
+      event.stopPropagation();
+      campoPopupActual = campo;
+      const popup = document.getElementById('popup-filtro-excel');
+
+      document.getElementById('label-ord-asc').innerText = esNumero ? "🔼 Ordenar de menor a mayor" : "🔼 Ordenar de A a Z";
+      document.getElementById('label-ord-desc').innerText = esNumero ? "🔽 Ordenar de mayor a menor" : "🔽 Ordenar de Z a A";
+
+      document.getElementById('popup-search-input').value = "";
+
+      let datosBase = (pestanaActiva === 'familia-macro') ? construirDatosMacroFamilia() : datosOriginales;
+      const valoresUnicos = [...new Set(datosBase.map(function(d) { return (d[campo] !== undefined && d[campo] !== null) ? d[campo].toString() : '(en blanco)'; }))].sort();
+
+      const container = document.getElementById('popup-checkbox-container');
+      container.innerHTML = "";
+
+      const seleccionados = filtrosExcelActivos[campo];
+
+      valoresUnicos.forEach(function(val, idx) {
+        const checked = (!seleccionados || seleccionados.has(val)) ? "checked" : "";
+        container.innerHTML += '<div class="filter-checkbox-item"><input type="checkbox" id="chk-pop-' + idx + '" value="' + val + '" ' + checked + ' class="chk-popup-item"><label for="chk-pop-' + idx + '">' + val + '</label></div>';
+      });
+
+      document.getElementById('chk-select-all').checked = !seleccionados || (seleccionados.size === valoresUn
