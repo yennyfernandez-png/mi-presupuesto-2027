@@ -33,12 +33,29 @@
 
     /* LAYOUT PRINCIPAL */
     .main-layout { display: flex; gap: 10px; width: 100%; align-items: flex-start; }
-    .table-card { flex: 1; background: #fff; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); max-height: 76vh; overflow: auto; }
+    .table-card { flex: 1; background: #fff; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); max-height: 76vh; overflow: auto; position: relative; }
     
-    /* TABLAS */
+    /* TABLAS Y FILTROS TIPO EXCEL */
     table { width: 100%; border-collapse: collapse; font-size: 10px; }
-    th { background: #2d3748; color: white; padding: 6px; font-weight: 700; text-align: right; position: sticky; top: 0; z-index: 10; white-space: nowrap; }
+    th { background: #2d3748; color: white; padding: 6px 4px; font-weight: 700; text-align: right; position: sticky; top: 0; z-index: 10; white-space: nowrap; user-select: none; }
     th.text-left { text-align: left; }
+    
+    .th-container { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+    .btn-filter-excel { background: transparent; border: none; color: #cbd5e0; cursor: pointer; font-size: 10px; padding: 1px 3px; border-radius: 2px; }
+    .btn-filter-excel:hover, .btn-filter-excel.activo { color: #fff; background: rgba(255,255,255,0.2); }
+
+    /* POPUP DE FILTRO ESTILO EXCEL */
+    .excel-filter-popup { display: none; position: absolute; background: #ffffff; color: #2d3748; border: 1px solid #cbd5e0; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); width: 250px; z-index: 500; font-size: 11px; padding: 8px; text-align: left; }
+    .excel-filter-popup.show { display: block; }
+    .filter-opt-item { padding: 6px 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-radius: 4px; font-weight: 500; }
+    .filter-opt-item:hover { background: #edf2f7; color: #2b6cb0; }
+    .filter-divider { height: 1px; background: #e2e8f0; margin: 6px 0; }
+    .filter-search-box { width: 100%; padding: 4px 8px; font-size: 11px; border: 1px solid #cbd5e0; border-radius: 4px; margin-bottom: 6px; }
+    .filter-checkbox-list { max-height: 140px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px; padding: 4px; background: #faf5ff; }
+    .filter-checkbox-item { display: flex; align-items: center; gap: 6px; padding: 3px 4px; font-size: 10px; cursor: pointer; }
+    .filter-checkbox-item:hover { background: #ebf8ff; }
+    .filter-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
+
     td { padding: 5px 6px; border-bottom: 1px solid #edf2f7; text-align: right; white-space: nowrap; }
     td.text-left { text-align: left; }
     tr:hover { background: #f8fafc; }
@@ -96,8 +113,8 @@
 
   <!-- NAVEGACIÓN -->
   <div class="tabs-nav">
-    <button id="tab-macro" class="tab-btn activo" onclick="mostrarPestana('macro')">📦 1. Macro por Familia (Pareto 80/20)</button>
-    <button id="tab-micro" class="tab-btn" onclick="mostrarPestana('micro')">🏢 2. Empresa / Cliente (Pareto 80/20) + Cuadre</button>
+    <button id="tab-macro" class="tab-btn activo" onclick="mostrarPestana('macro')">📦 1. Macro por Familia (Pareto 80/20 por VTA + PROY 2026)</button>
+    <button id="tab-micro" class="tab-btn" onclick="mostrarPestana('micro')">🏢 2. Empresa / Cliente (Pareto 80/20 por VTA + PROY 2026) + Cuadre</button>
     <button id="tab-charts" class="tab-btn" onclick="mostrarPestana('charts')">📈 3. Gráficos y Dashboard</button>
   </div>
 
@@ -116,6 +133,8 @@
       <button id="btn-v-det" class="btn-item" onclick="cambiarVistaMicro('detallado')">📋 Ver Detallado Abierto</button>
     </div>
 
+    <button class="btn-secondary" onclick="limpiarTodosFiltrosExcel()">🧹 Limpiar Filtros Excel</button>
+
     <label class="btn-secondary">
       📁 Cargar CSV
       <input type="file" id="inp-csv" accept=".csv" style="display:none;" onchange="cargarCSVLocal(this)">
@@ -131,6 +150,27 @@
         <div class="menu-item" onclick="copiarAlPortapapeles()">📋 Copiar al portapapeles</div>
         <div class="menu-item" onclick="descargarCSV()">📄 Exportar datos (CSV)</div>
       </div>
+    </div>
+  </div>
+
+  <!-- POPUP DE FILTRO ESTILO EXCEL -->
+  <div id="popup-excel-filter" class="excel-filter-popup">
+    <div class="filter-opt-item" onclick="ejecutarOrdenExcel('asc')">
+      <span id="label-ord-asc">🔼 Ordenar de A a Z</span>
+    </div>
+    <div class="filter-opt-item" onclick="ejecutarOrdenExcel('desc')">
+      <span id="label-ord-desc">🔽 Ordenar de Z a A</span>
+    </div>
+    <div class="filter-divider"></div>
+    <input type="text" id="popup-search-input" class="filter-search-box" placeholder="Buscar valores..." oninput="filtrarCheckboxPopup()">
+    <div class="filter-checkbox-item" style="border-bottom: 1px solid #e2e8f0; font-weight: bold;">
+      <input type="checkbox" id="chk-select-all" checked onchange="toggleSelectAllPopup(this)">
+      <label for="chk-select-all">(Seleccionar todo)</label>
+    </div>
+    <div id="popup-checkbox-container" class="filter-checkbox-list"></div>
+    <div class="filter-actions">
+      <button class="btn-secondary" onclick="cerrarPopupFiltroExcel()">Cancelar</button>
+      <button class="btn-action" onclick="aplicarFiltroPopupExcel()">Aceptar</button>
     </div>
   </div>
 
@@ -185,6 +225,9 @@
     let paisSeleccionado = 'TODOS';
     let modoVistaMicro = 'cliente';
     let clientesExpandidos = {};
+
+    let filtrosExcelActivos = {};
+    let campoPopupActual = null;
 
     let chart1 = null, chart2 = null;
 
@@ -344,14 +387,89 @@
       else render();
     }
 
-    function getFilteredData() {
-      let base = (pestanaActiva === 'macro') ? getMacroData() : datosOriginales;
-      if (paisSeleccionado !== 'TODOS') {
-        base = base.filter(d => d.id_empresa === paisSeleccionado);
-      }
-      return base;
+    /* FILTROS EMERGENTES ESTILO EXCEL */
+    function abrirPopupFiltroExcel(event, campo, esNum) {
+      event.stopPropagation();
+      campoPopupActual = campo;
+      const popup = document.getElementById('popup-excel-filter');
+
+      document.getElementById('label-ord-asc').innerText = esNum ? "🔼 Ordenar de menor a mayor" : "🔼 Ordenar de A a Z";
+      document.getElementById('label-ord-desc').innerText = esNum ? "🔽 Ordenar de mayor a menor" : "🔽 Ordenar de Z a A";
+      document.getElementById('popup-search-input').value = "";
+
+      let datosBase = (pestanaActiva === 'macro') ? getMacroData() : datosOriginales;
+      const valoresUnicos = [...new Set(datosBase.map(d => (d[campo] !== undefined && d[campo] !== null) ? d[campo].toString() : '(en blanco)'))].sort();
+
+      const container = document.getElementById('popup-checkbox-container');
+      container.innerHTML = "";
+      const seleccionados = filtrosExcelActivos[campo];
+
+      valoresUnicos.forEach((val, idx) => {
+        const checked = (!seleccionados || seleccionados.has(val)) ? "checked" : "";
+        container.innerHTML += `<div class="filter-checkbox-item"><input type="checkbox" id="chk-pop-${idx}" value="${val}" ${checked} class="chk-popup-item"><label for="chk-pop-${idx}">${val}</label></div>`;
+      });
+
+      document.getElementById('chk-select-all').checked = !seleccionados || (seleccionados.size === valoresUnicos.length);
+
+      const rect = event.target.getBoundingClientRect();
+      popup.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+      popup.style.left = Math.min(rect.left + window.scrollX, window.innerWidth - 270) + 'px';
+      popup.classList.add('show');
     }
 
+    function cerrarPopupFiltroExcel() {
+      const popup = document.getElementById('popup-excel-filter');
+      if (popup) popup.classList.remove('show');
+    }
+
+    function toggleSelectAllPopup(chkAll) {
+      document.querySelectorAll('.chk-popup-item').forEach(chk => chk.checked = chkAll.checked);
+    }
+
+    function filtrarCheckboxPopup() {
+      const txt = document.getElementById('popup-search-input').value.toLowerCase();
+      document.querySelectorAll('.filter-checkbox-item').forEach(item => {
+        item.style.display = item.innerText.toLowerCase().includes(txt) ? 'flex' : 'none';
+      });
+    }
+
+    function aplicarFiltroPopupExcel() {
+      const checkboxes = document.querySelectorAll('.chk-popup-item');
+      const seleccionados = new Set();
+      checkboxes.forEach(chk => { if (chk.checked) seleccionados.add(chk.value); });
+      filtrosExcelActivos[campoPopupActual] = seleccionados;
+      cerrarPopupFiltroExcel();
+      render();
+    }
+
+    function limpiarTodosFiltrosExcel() {
+      filtrosExcelActivos = {};
+      paisSeleccionado = 'TODOS';
+      document.querySelectorAll('.btn-group .btn-item').forEach(b => b.classList.remove('activo'));
+      document.querySelectorAll('.btn-group .btn-item')[0].classList.add('activo');
+      render();
+    }
+
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#popup-excel-filter') && !e.target.closest('.btn-filter-excel')) {
+        cerrarPopupFiltroExcel();
+      }
+    });
+
+    function getFilteredData() {
+      let base = (pestanaActiva === 'macro') ? getMacroData() : datosOriginales;
+      return base.filter(d => {
+        if (paisSeleccionado !== 'TODOS' && d.id_empresa !== paisSeleccionado) return false;
+        for (let campo in filtrosExcelActivos) {
+          const permitidos = filtrosExcelActivos[campo];
+          let valStr = (d[campo] !== undefined && d[campo] !== null) ? d[campo].toString() : '(en blanco)';
+          if (permitidos && !permitidos.has(valStr)) return false;
+        }
+        return true;
+      });
+    }
+
+    /* ORDENAMIENTO Y PARETO 80/20 BASADO ESTRUCTURADAMENTE EN VTA + PROY 2026 */
     function getMacroData() {
       const map = {};
       let baseP = datosOriginales;
@@ -375,11 +493,13 @@
         map[fam].vta_23 += Number(item.vta_23 || 0);
       });
 
-      const totVta = baseP.reduce((s, d) => s + (d.vta_proy_26 || 0), 0);
+      // ORDENAR POR VTA + PROY 2026 DE MAYOR A MENOR (PARETO)
+      const totVta26 = baseP.reduce((s, d) => s + (d.vta_proy_26 || 0), 0);
       let list = Object.values(map).sort((a, b) => b.vta_proy_26 - a.vta_proy_26);
+
       let acum = 0;
       list.forEach(r => {
-        r.pctPart = totVta > 0 ? (r.vta_proy_26 / totVta) * 100 : 0;
+        r.pctPart = totVta26 > 0 ? (r.vta_proy_26 / totVta26) * 100 : 0;
         acum += r.pctPart;
         r.pctAcum = acum;
       });
@@ -391,6 +511,11 @@
       render();
     }
 
+    function crearThHTML(label, campo, esNum) {
+      const activo = filtrosExcelActivos[campo] !== undefined ? "activo" : "";
+      return `<th><div class="th-container"><span>${label}</span><button class="btn-filter-excel ${activo}" onclick="abrirPopupFiltroExcel(event, '${campo}', ${esNum})">🔻</button></div></th>`;
+    }
+
     function render() {
       const data = getFilteredData();
       const thead = document.getElementById('th-head');
@@ -399,13 +524,23 @@
       document.getElementById('txt-filas').innerText = "Mostrando " + data.length + " registros de " + datosOriginales.length + " totales";
 
       if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:15px;">No hay datos para mostrar.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:15px;">No hay datos para mostrar. Presione <strong>🧹 Limpiar Filtros Excel</strong>.</td></tr>';
         trTot.innerHTML = '';
         return;
       }
 
       if (pestanaActiva === 'macro') {
-        thead.innerHTML = '<th class="text-left">Empresa (País)</th><th class="text-left">Familia Agrupada (Macro)</th><th>% Part.</th><th>% Acum (80/20)</th><th>PPTO 2026</th><th>VTA + PROY</th><th>VTA 25</th><th>VTA 24</th><th>VTA 23</th><th>PPTO 2027 MACRO</th><th>Var %</th>';
+        thead.innerHTML = crearThHTML('Empresa (País)', 'id_empresa', false) +
+          crearThHTML('Familia Agrupada (Macro)', 'familias_agrupadas', false) +
+          crearThHTML('% Part. VTA 26', 'pctPart', true) +
+          crearThHTML('% Acum (80/20)', 'pctAcum', true) +
+          crearThHTML('PPTO 2026', 'ppto_2026', true) +
+          crearThHTML('VTA + PROY', 'vta_proy_26', true) +
+          crearThHTML('VTA 25', 'vta_25', true) +
+          crearThHTML('VTA 24', 'vta_24', true) +
+          crearThHTML('VTA 23', 'vta_23', true) +
+          crearThHTML('PPTO 2027 MACRO', 'ppto_2027_macro', true) +
+          '<th>Var %</th>';
 
         const tP26 = data.reduce((s, d) => s + d.ppto_2026, 0);
         const tV26 = data.reduce((s, d) => s + d.vta_proy_26, 0);
@@ -442,7 +577,18 @@
         const tP27 = datosOriginales.reduce((s, d) => s + d.ppto_2027, 0);
 
         if (modoVistaMicro === 'cliente') {
-          thead.innerHTML = '<th class="text-left">Empresa (País)</th><th class="text-left">Cliente (razon_social_sec)</th><th>% Part.</th><th>% Acum (80/20)</th><th>PPTO 2026</th><th>VTA + PROY</th><th>VTA 25</th><th>VTA 24</th><th>VTA 23</th><th>PPTO 2027 CLIENTE</th><th>Var %</th>';
+          thead.innerHTML = crearThHTML('Empresa (País)', 'id_empresa', false) +
+            crearThHTML('Cliente (razon_social_sec)', 'razon_social_sec', false) +
+            crearThHTML('% Part. VTA 26', 'pctPart', true) +
+            crearThHTML('% Acum (80/20)', 'pctAcum', true) +
+            crearThHTML('PPTO 2026', 'ppto_2026', true) +
+            crearThHTML('VTA + PROY', 'vta_proy_26', true) +
+            crearThHTML('VTA 25', 'vta_25', true) +
+            crearThHTML('VTA 24', 'vta_24', true) +
+            crearThHTML('VTA 23', 'vta_23', true) +
+            crearThHTML('PPTO 2027 CLIENTE', 'ppto_2027', true) +
+            '<th>Var %</th>';
+
           trTot.innerHTML = '<td class="text-left" colspan="2">TOTAL EMPRESA / CLIENTES</td><td>100%</td><td>100%</td><td>$' + fmtN(tP26) + '</td><td>$' + fmtN(tV26) + '</td><td>$' + fmtN(tV25) + '</td><td>$' + fmtN(tV24) + '</td><td>$' + fmtN(tV23) + '</td><td id="tot-p27">$' + fmtN(tP27) + '</td><td>' + calcV(tV26, tP27) + '%</td>';
 
           const mapC = {};
@@ -460,13 +606,14 @@
             mapC[cli].hijos.push(item);
           });
 
-          const totV = Object.values(mapC).reduce((s, c) => s + c.vta_proy_26, 0);
+          // ORDENAR CLIENTES POR VTA + PROY 2026
+          const totV26Cli = Object.values(mapC).reduce((s, c) => s + c.vta_proy_26, 0);
           let listC = Object.values(mapC).sort((a, b) => b.vta_proy_26 - a.vta_proy_26);
 
           let acum = 0;
           tbody.innerHTML = '';
           listC.forEach(cli => {
-            cli.pctPart = totV > 0 ? (cli.vta_proy_26 / totV) * 100 : 0;
+            cli.pctPart = totV26Cli > 0 ? (cli.vta_proy_26 / totV26Cli) * 100 : 0;
             acum += cli.pctPart;
             cli.pctAcum = acum;
 
@@ -503,7 +650,19 @@
           });
 
         } else {
-          thead.innerHTML = '<th class="text-left">Empresa (País)</th><th class="text-left">Gerencia</th><th class="text-left">Cliente</th><th class="text-left">Familia</th><th class="text-left">Nombre Familia</th><th>PPTO 2026</th><th>VTA + PROY</th><th>VTA 25</th><th>VTA 24</th><th>VTA 23</th><th>PPTO 2027</th><th>Var %</th>';
+          thead.innerHTML = crearThHTML('Empresa (País)', 'id_empresa', false) +
+            crearThHTML('Gerencia', 'gerencia', false) +
+            crearThHTML('Cliente', 'razon_social_sec', false) +
+            crearThHTML('Familia', 'familias_agrupadas', false) +
+            crearThHTML('Nombre Familia', 'nombre_familia', false) +
+            crearThHTML('PPTO 2026', 'ppto_2026', true) +
+            crearThHTML('VTA + PROY', 'vta_proy_26', true) +
+            crearThHTML('VTA 25', 'vta_25', true) +
+            crearThHTML('VTA 24', 'vta_24', true) +
+            crearThHTML('VTA 23', 'vta_23', true) +
+            crearThHTML('PPTO 2027', 'ppto_2027', true) +
+            '<th>Var %</th>';
+
           trTot.innerHTML = '<td class="text-left" colspan="5">TOTAL DETALLE CLIENTES</td><td>$' + fmtN(tP26) + '</td><td>$' + fmtN(tV26) + '</td><td>$' + fmtN(tV25) + '</td><td>$' + fmtN(tV24) + '</td><td>$' + fmtN(tV23) + '</td><td id="tot-p27">$' + fmtN(tP27) + '</td><td>' + calcV(tV26, tP27) + '%</td>';
 
           tbody.innerHTML = '';
@@ -556,7 +715,6 @@
       });
     }
 
-    // AUTO-BORRADO AL ENFOCAR $0
     function focusZero(inp) {
       if (inp.value === "0" || inp.value === "$0") inp.value = "";
     }
