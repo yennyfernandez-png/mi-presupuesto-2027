@@ -21,7 +21,7 @@
       justify-content: center;
       align-items: center;
       z-index: 9999;
-      transition: opacity 0.4s ease, visibility 0.4s;
+      transition: opacity 0.5s ease, visibility 0.5s;
     }
     #splash-screen.oculto {
       opacity: 0;
@@ -71,7 +71,7 @@
       width: 0%;
       background: linear-gradient(90deg, #3182ce, #2b6cb0);
       border-radius: 10px;
-      transition: width 0.2s ease-out;
+      transition: width 0.15s ease-out;
     }
 
     .progress-badge-percent {
@@ -197,7 +197,7 @@
         <text x="0" y="54" font-family="-apple-system, BlinkMacSystemFont, Arial, sans-serif" font-weight="400" font-size="12" fill="#555555" letter-spacing="4">EFICIENCIA INDUSTRIAL</text>
       </svg>
       
-      <div class="splash-msg">Cargando sistema comercial...</div>
+      <div id="splash-msg-text" class="splash-msg">Conectando con base de datos...</div>
       
       <div class="progress-bar-container">
         <div id="splash-progress-fill" class="progress-bar-fill"></div>
@@ -269,160 +269,4 @@
   </div>
 
   <div id="popup-filtro-excel" class="excel-filter-popup">
-    <div class="filter-opt-item" onclick="ejecutarOrdenExcel('asc')">
-      <span id="label-ord-asc">🔼 Ordenar de A a Z</span>
-    </div>
-    <div class="filter-opt-item" onclick="ejecutarOrdenExcel('desc')">
-      <span id="label-ord-desc">🔽 Ordenar de Z a A</span>
-    </div>
-    <div class="filter-divider"></div>
-    <input type="text" id="popup-search-input" class="filter-search-box" placeholder="Buscar valores..." oninput="filtrarCheckboxPopup()">
-    <div class="filter-checkbox-item" style="border-bottom: 1px solid #e2e8f0; font-weight: bold;">
-      <input type="checkbox" id="chk-select-all" checked onchange="toggleSelectAllPopup(this)">
-      <label for="chk-select-all">(Seleccionar todo)</label>
-    </div>
-    <div id="popup-checkbox-container" class="filter-checkbox-list"></div>
-    <div class="filter-actions">
-      <button class="btn-excel-action btn-excel-cancel" onclick="cerrarPopupFiltroExcel()">Cancelar</button>
-      <button class="btn-excel-action btn-excel-accept" onclick="aplicarFiltroPopupExcel()">Aceptar</button>
-    </div>
-  </div>
-
-  <div class="layout-pestana2">
-    <div id="seccion-tabla" class="tabla-container">
-      <table>
-        <thead>
-          <tr id="encabezado-tabla"></tr>
-          <tr id="fila-totales" class="fila-totales"></tr>
-        </thead>
-        <tbody id="cuerpo-tabla">
-          <tr><td colspan="16" style="text-align:center; padding:20px;">Cargando datos...</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div id="panel-cuadre-lateral" class="panel-cuadre-lateral" style="display:none;">
-      <h3>⚖️ Cuadre por Familia (Macro vs Clientes)</h3>
-      <table style="width:100%;">
-        <thead>
-          <tr>
-            <th style="font-size:9px;">Familia Agrupada</th>
-            <th style="font-size:9px;">Meta P1</th>
-            <th style="font-size:9px;">Sum P2</th>
-            <th style="font-size:9px;">Estado</th>
-          </tr>
-        </thead>
-        <tbody id="cuerpo-panel-cuadre">
-          <tr><td colspan="4" style="text-align:center;">Calculando...</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <div id="seccion-graficos" class="dashboard-container">
-    <div class="chart-card">
-      <h3>🏆 Top 10 Clientes (Pestaña 2 Detallada)</h3>
-      <canvas id="chartClientes" height="230"></canvas>
-    </div>
-    <div class="chart-card">
-      <h3>📦 Presupuesto 2027 vs 2026 por Familia</h3>
-      <canvas id="chartFamilias" height="230"></canvas>
-    </div>
-    <div class="chart-card" style="min-width: 100%;">
-      <h3>📈 Tendencia Histórica Global de Ventas vs Presupuesto 2027</h3>
-      <canvas id="chartHistorico" height="130"></canvas>
-    </div>
-  </div>
-
-  <script>
-    let datosOriginales = [];
-    let metasMacroFamilia = {};
-    let pestanaActiva = 'familia-macro';
-    let paisSeleccionado = 'TODOS';
-    let modoVistaMicro = 'cliente';
-    let clientesExpandidos = {};
-
-    let columnaOrden = 'vta_proy_26';
-    let ordenAscendente = false;
-
-    let filtrosExcelActivos = {};
-    let campoPopupActual = null;
-
-    let chartClientesInst = null;
-    let chartFamiliasInst = null;
-    let chartHistoricoInst = null;
-
-    let progresoActual = 0;
-    let intervaloProgreso = null;
-
-    function actualizarBarraProgreso(porcentaje) {
-      progresoActual = Math.min(100, Math.max(progresoActual, porcentaje));
-      const fill = document.getElementById('splash-progress-fill');
-      const text = document.getElementById('splash-progress-text');
-      if (fill) fill.style.width = progresoActual + '%';
-      if (text) text.innerText = Math.round(progresoActual) + '%';
-    }
-
-    function ocultarSplash() {
-      actualizarBarraProgreso(100);
-      if (intervaloProgreso) clearInterval(intervaloProgreso);
-      setTimeout(() => {
-        const splash = document.getElementById('splash-screen');
-        if (splash) splash.classList.add('oculto');
-      }, 300);
-    }
-
-    function iniciarAplicacion() {
-      // Simulación de carga progresiva suave
-      intervaloProgreso = setInterval(() => {
-        if (progresoActual < 90) {
-          actualizarBarraProgreso(progresoActual + 15);
-        }
-      }, 100);
-
-      // Cargar caché inmediato
-      const cacheGuardado = localStorage.getItem('presupuesto_cache_datos');
-      const edicionesLocales = localStorage.getItem('presupuesto_ediciones_2027');
-      const metasGuardadas = localStorage.getItem('presupuesto_metas_macro');
-
-      if (cacheGuardado) {
-        try { datosOriginales = JSON.parse(cacheGuardado); } catch(e){}
-      }
-
-      if (edicionesLocales) {
-        try {
-          const mapaEdiciones = JSON.parse(edicionesLocales);
-          datosOriginales.forEach(function(d) {
-            if (mapaEdiciones[d.id] !== undefined) d.ppto_2027 = mapaEdiciones[d.id];
-          });
-        } catch(e){}
-      }
-
-      if (metasGuardadas) {
-        try { metasMacroFamilia = JSON.parse(metasGuardadas); } catch(e){}
-      }
-
-      if (datosOriginales.length > 0) {
-        filtrarYRenderizar();
-        actualizarEstado("⚡ Carga Instantánea (" + datosOriginales.length + " filas)", "status-badge");
-        ocultarSplash();
-      }
-
-      // Failsafe absoluto de 1.2 segundos para quitar splash sí o sí
-      setTimeout(() => {
-        ocultarSplash();
-      }, 1200);
-
-      // Cargar CSV de fondo
-      fetch('datos_2027.csv?ts=' + Date.now())
-        .then(res => {
-          if (res.ok) return res.text();
-          throw new Error("CSV no hallado");
-        })
-        .then(texto => {
-          const filas = parsearCSV(texto);
-          if (filas.length > 1) {
-            procesarFilasCSV(filas);
-            actualizarEstado("✅ Sincronizado (" + (filas.length - 1) + " filas)", "status-badge");
-          }
-          ocultarSplash
+    <div class="filter-opt-item" onclick="ejecutarOrdenExcel('
