@@ -21,7 +21,7 @@
       justify-content: center;
       align-items: center;
       z-index: 9999;
-      transition: opacity 0.5s ease, visibility 0.5s;
+      transition: opacity 0.4s ease, visibility 0.4s;
     }
     #splash-screen.oculto {
       opacity: 0;
@@ -71,7 +71,7 @@
       width: 0%;
       background: linear-gradient(90deg, #3182ce, #2b6cb0);
       border-radius: 10px;
-      transition: width 0.15s ease-out;
+      transition: width 0.2s ease-out;
     }
 
     .progress-badge-percent {
@@ -197,7 +197,7 @@
         <text x="0" y="54" font-family="-apple-system, BlinkMacSystemFont, Arial, sans-serif" font-weight="400" font-size="12" fill="#555555" letter-spacing="4">EFICIENCIA INDUSTRIAL</text>
       </svg>
       
-      <div id="splash-msg-text" class="splash-msg">Conectando con base de datos...</div>
+      <div class="splash-msg">Cargando sistema comercial...</div>
       
       <div class="progress-bar-container">
         <div id="splash-progress-fill" class="progress-bar-fill"></div>
@@ -269,4 +269,221 @@
   </div>
 
   <div id="popup-filtro-excel" class="excel-filter-popup">
-    <div class="filter-opt-item" onclick="ejecutarOrdenExcel('
+    <div class="filter-opt-item" onclick="ejecutarOrdenExcel('asc')">
+      <span id="label-ord-asc">🔼 Ordenar de A a Z</span>
+    </div>
+    <div class="filter-opt-item" onclick="ejecutarOrdenExcel('desc')">
+      <span id="label-ord-desc">🔽 Ordenar de Z a A</span>
+    </div>
+    <div class="filter-divider"></div>
+    <input type="text" id="popup-search-input" class="filter-search-box" placeholder="Buscar valores..." oninput="filtrarCheckboxPopup()">
+    <div class="filter-checkbox-item" style="border-bottom: 1px solid #e2e8f0; font-weight: bold;">
+      <input type="checkbox" id="chk-select-all" checked onchange="toggleSelectAllPopup(this)">
+      <label for="chk-select-all">(Seleccionar todo)</label>
+    </div>
+    <div id="popup-checkbox-container" class="filter-checkbox-list"></div>
+    <div class="filter-actions">
+      <button class="btn-excel-action btn-excel-cancel" onclick="cerrarPopupFiltroExcel()">Cancelar</button>
+      <button class="btn-excel-action btn-excel-accept" onclick="aplicarFiltroPopupExcel()">Aceptar</button>
+    </div>
+  </div>
+
+  <div class="layout-pestana2">
+    <div id="seccion-tabla" class="tabla-container">
+      <table>
+        <thead>
+          <tr id="encabezado-tabla"></tr>
+          <tr id="fila-totales" class="fila-totales"></tr>
+        </thead>
+        <tbody id="cuerpo-tabla">
+          <tr><td colspan="16" style="text-align:center; padding:20px;">Cargando datos...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="panel-cuadre-lateral" class="panel-cuadre-lateral" style="display:none;">
+      <h3>⚖️ Cuadre por Familia (Macro vs Clientes)</h3>
+      <table style="width:100%;">
+        <thead>
+          <tr>
+            <th style="font-size:9px;">Familia Agrupada</th>
+            <th style="font-size:9px;">Meta P1</th>
+            <th style="font-size:9px;">Sum P2</th>
+            <th style="font-size:9px;">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="cuerpo-panel-cuadre">
+          <tr><td colspan="4" style="text-align:center;">Calculando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="seccion-graficos" class="dashboard-container">
+    <div class="chart-card">
+      <h3>🏆 Top 10 Clientes (Pestaña 2 Detallada)</h3>
+      <canvas id="chartClientes" height="230"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>📦 Presupuesto 2027 vs 2026 por Familia</h3>
+      <canvas id="chartFamilias" height="230"></canvas>
+    </div>
+    <div class="chart-card" style="min-width: 100%;">
+      <h3>📈 Tendencia Histórica Global de Ventas vs Presupuesto 2027</h3>
+      <canvas id="chartHistorico" height="130"></canvas>
+    </div>
+  </div>
+
+  <script>
+    // DATOS DE RESPALDO DE EMERGENCIA (INICIO INSTANTÁNEO)
+    let datosOriginales = [
+      { id: 1, id_empresa: "PRECISION BOLIVIA", gerencia: "OCCIDENTE", razon_social_sec: "ARMANDO PEDRO VEDIA LOPEZ", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROL Y SOFTWARE DE VISUALIZACION", ppto_2026: 0, vta_proy_26: 865, porc_proy: "0%", vta_23: 0, vta_24: 0, vta_25: 0, ppto_2027: 0 },
+      { id: 2, id_empresa: "PRECISION BOLIVIA", gerencia: "OCCIDENTE", razon_social_sec: "BANCO PYME DE LA COMUNIDAD S.A.", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROLADORES Y REDES", ppto_2026: 0, vta_proy_26: 662, porc_proy: "0%", vta_23: 0, vta_24: 0, vta_25: 0, ppto_2027: 0 },
+      { id: 3, id_empresa: "PRECISION CHILE", gerencia: "MINERIA", razon_social_sec: "MINERA ESCONDIDA LTDA", familias_agrupadas: "CONTROL INDUSTRIAL", nombre_familia: "CONTROL INDUSTRIAL", ppto_2026: 120000, vta_proy_26: 145000, porc_proy: "120%", vta_23: 95000, vta_24: 110000, vta_25: 130000, ppto_2027: 0 },
+      { id: 4, id_empresa: "PRECISION PERU", gerencia: "SUR", razon_social_sec: "SOUTHERN PERU COPPER CORP", familias_agrupadas: "VARIADORES DE FRECUENCIA", nombre_familia: "VARIADORES DE FRECUENCIA", ppto_2026: 85000, vta_proy_26: 92000, porc_proy: "108%", vta_23: 65000, vta_24: 79000, vta_25: 88000, ppto_2027: 0 },
+      { id: 5, id_empresa: "PRECISION ECUADOR", gerencia: "COSTA", razon_social_sec: "HOLCIM ECUADOR S.A.", familias_agrupadas: "AUTOMATIZACION", nombre_familia: "CONTROLADORES Y REDES", ppto_2026: 50000, vta_proy_26: 58000, porc_proy: "116%", vta_23: 40000, vta_24: 48000, vta_25: 52000, ppto_2027: 0 }
+    ];
+
+    let metasMacroFamilia = {};
+    let pestanaActiva = 'familia-macro';
+    let paisSeleccionado = 'TODOS';
+    let modoVistaMicro = 'cliente';
+    let clientesExpandidos = {};
+
+    let columnaOrden = 'vta_proy_26';
+    let ordenAscendente = false;
+
+    let filtrosExcelActivos = {};
+    let campoPopupActual = null;
+
+    let chartClientesInst = null;
+    let chartFamiliasInst = null;
+    let chartHistoricoInst = null;
+
+    let progresoActual = 0;
+    let splashOculto = false;
+
+    function actualizarBarraProgreso(porcentaje) {
+      progresoActual = Math.min(100, Math.max(progresoActual, porcentaje));
+      const fill = document.getElementById('splash-progress-fill');
+      const text = document.getElementById('splash-progress-text');
+      if (fill) fill.style.width = progresoActual + '%';
+      if (text) text.innerText = Math.round(progresoActual) + '%';
+    }
+
+    function ocultarSplash() {
+      if (splashOculto) return;
+      splashOculto = true;
+      actualizarBarraProgreso(100);
+      setTimeout(() => {
+        const splash = document.getElementById('splash-screen');
+        if (splash) splash.classList.add('oculto');
+      }, 200);
+    }
+
+    function iniciarAplicacion() {
+      // Avanzar barra de progreso de forma continua
+      actualizarBarraProgreso(25);
+      
+      const cacheGuardado = localStorage.getItem('presupuesto_cache_datos');
+      const edicionesLocales = localStorage.getItem('presupuesto_ediciones_2027');
+      const metasGuardadas = localStorage.getItem('presupuesto_metas_macro');
+
+      if (cacheGuardado) {
+        try { 
+          const datosCache = JSON.parse(cacheGuardado);
+          if (datosCache.length > 0) datosOriginales = datosCache;
+        } catch(e){}
+      }
+
+      if (edicionesLocales) {
+        try {
+          const mapaEdiciones = JSON.parse(edicionesLocales);
+          datosOriginales.forEach(function(d) {
+            if (mapaEdiciones[d.id] !== undefined) d.ppto_2027 = mapaEdiciones[d.id];
+          });
+        } catch(e){}
+      }
+
+      if (metasGuardadas) {
+        try { metasMacroFamilia = JSON.parse(metasGuardadas); } catch(e){}
+      }
+
+      actualizarBarraProgreso(60);
+      filtrarYRenderizar();
+      actualizarEstado("⚡ Carga Instantánea (" + datosOriginales.length + " filas)", "status-badge");
+
+      // GARANTÍA ABSOLUTA: Ocultar la portada a los 0.6 segundos independientemente de la red
+      setTimeout(() => {
+        actualizarBarraProgreso(90);
+        ocultarSplash();
+      }, 600);
+
+      // Cargar archivo CSV en segundo plano
+      fetch('datos_2027.csv?ts=' + Date.now())
+        .then(res => { if (res.ok) return res.text(); throw new Error(); })
+        .then(texto => {
+          const filas = parsearCSV(texto);
+          if (filas.length > 1) {
+            procesarFilasCSV(filas);
+            actualizarEstado("✅ Sincronizado (" + (filas.length - 1) + " filas)", "status-badge");
+          }
+        })
+        .catch(err => {
+          console.warn("Utilizando datos locales...");
+        });
+    }
+
+    function cargarDesdeArchivoLocal(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const contenido = e.target.result;
+        const filas = parsearCSV(contenido);
+        procesarFilasCSV(filas);
+        actualizarEstado("✅ " + (filas.length - 1) + " Filas Cargadas", "status-badge");
+      };
+      reader.readAsText(file);
+    }
+
+    function parsearCSV(texto) {
+      const lineas = texto.split(/\r\n|\n/);
+      const resultado = [];
+      for (let i = 0; i < lineas.length; i++) {
+        const linea = lineas[i].trim();
+        if (!linea) continue;
+
+        const celdas = [];
+        let dentroComillas = false;
+        let campo = '';
+
+        for (let j = 0; j < linea.length; j++) {
+          const char = linea[j];
+          if (char === '"') {
+            dentroComillas = !dentroComillas;
+          } else if (char === ',' && !dentroComillas) {
+            celdas.push(campo);
+            campo = '';
+          } else {
+            campo += char;
+          }
+        }
+        celdas.push(campo);
+        resultado.push(celdas);
+      }
+      return resultado;
+    }
+
+    function procesarFilasCSV(filas) {
+      const data = [];
+      for (let i = 1; i < filas.length; i++) {
+        const c = filas[i];
+        if (!c || c.length < 4) continue;
+
+        data.push({
+          id: i,
+          id_empresa: limpiarTexto(c[0]),
+          gerencia: limpiarTexto(c[1]),
+          razon_
