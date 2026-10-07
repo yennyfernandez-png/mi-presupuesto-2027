@@ -74,4 +74,618 @@
     .alerta-cuadre.falta { background: #feebc8; color: #744210; }
 
     .dashboard-grid { display: none; gap: 12px; flex-wrap: wrap; width: 100%; }
-    .chart-box { background: #fff; padding: 12px; border-radius: 6px; box-shadow: 0
+    .chart-box { background: #fff; padding: 12px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); flex: 1; min-width: 400px; }
+
+    /* DROPDOWN MENU */
+    .menu-dropdown { display: none; position: absolute; right: 12px; top: 36px; background: #fff; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 210px; z-index: 100; border: 1px solid #e2e8f0; }
+    .menu-dropdown.show { display: block; }
+    .menu-item { padding: 8px 12px; font-size: 11px; cursor: pointer; color: #2d3748; }
+    .menu-item:hover { background: #ebf8ff; color: #2b6cb0; }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="brand-title">
+      <span>PRECISION</span>
+      <span class="brand-tag">PPTO VENTAS 2027</span>
+    </div>
+    <span id="status-indicator" class="status-badge">⚡ Listo</span>
+  </div>
+
+  <!-- NAVEGACIÓN -->
+  <div class="tabs-nav">
+    <button id="tab-macro" class="tab-btn activo" onclick="mostrarPestana('macro')">📦 1. Macro por Familia (Pareto 80/20)</button>
+    <button id="tab-micro" class="tab-btn" onclick="mostrarPestana('micro')">🏢 2. Empresa / Cliente (Pareto 80/20) + Cuadre</button>
+    <button id="tab-charts" class="tab-btn" onclick="mostrarPestana('charts')">📈 3. Gráficos y Dashboard</button>
+  </div>
+
+  <!-- CONTROLES -->
+  <div class="controls-bar">
+    <div class="btn-group">
+      <button class="btn-item activo" onclick="filtrarPais('TODOS', this)">🌍 Todos</button>
+      <button class="btn-item" onclick="filtrarPais('PRECISION BOLIVIA', this)">Bolivia</button>
+      <button class="btn-item" onclick="filtrarPais('PRECISION CHILE', this)">Chile</button>
+      <button class="btn-item" onclick="filtrarPais('PRECISION ECUADOR', this)">Ecuador</button>
+      <button class="btn-item" onclick="filtrarPais('PRECISION PERU', this)">Perú</button>
+    </div>
+
+    <div id="vista-controls" class="btn-group" style="display:none;">
+      <button id="btn-v-cli" class="btn-item activo" onclick="cambiarVistaMicro('cliente')">👥 Cliente Desplegable</button>
+      <button id="btn-v-det" class="btn-item" onclick="cambiarVistaMicro('detallado')">📋 Ver Detallado Abierto</button>
+    </div>
+
+    <label class="btn-secondary">
+      📁 Cargar CSV
+      <input type="file" id="inp-csv" accept=".csv" style="display:none;" onchange="cargarCSVLocal(this)">
+    </label>
+
+    <button class="btn-action" onclick="guardarLocalmente()">💾 Guardar Cambios</button>
+
+    <span id="txt-filas" style="font-weight: bold; color: #2b6cb0;">Mostrando registros...</span>
+
+    <div style="margin-left: auto;">
+      <button class="btn-secondary" onclick="toggleMenu(event)">⋮ Opciones</button>
+      <div id="dropdown-opts" class="menu-dropdown">
+        <div class="menu-item" onclick="copiarAlPortapapeles()">📋 Copiar al portapapeles</div>
+        <div class="menu-item" onclick="descargarCSV()">📄 Exportar datos (CSV)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LAYOUT TABLAS -->
+  <div class="main-layout">
+    <div id="sec-tabla" class="table-card">
+      <table>
+        <thead>
+          <tr id="th-head"></tr>
+          <tr id="tr-totales" class="row-totales"></tr>
+        </thead>
+        <tbody id="tb-body">
+          <tr><td colspan="12" style="text-align:center; padding:20px;">Cargando datos...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="sec-cuadre" class="sidebar-cuadre" style="display:none;">
+      <h3>⚖️ Cuadre por Familia (Macro vs Clientes)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th class="text-left">Familia</th>
+            <th>Meta P1</th>
+            <th>Sum P2</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="tb-cuadre">
+          <tr><td colspan="4" style="text-align:center;">Calculando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="sec-charts" class="dashboard-grid">
+    <div class="chart-box">
+      <h3>🏆 Top 10 Clientes</h3>
+      <canvas id="chartClientes" height="200"></canvas>
+    </div>
+    <div class="chart-box">
+      <h3>📦 Presupuesto 2027 por Familia</h3>
+      <canvas id="chartFamilias" height="200"></canvas>
+    </div>
+  </div>
+
+  <script>
+    let datosOriginales = [];
+    let metasMacroFamilia = {};
+    let pestanaActiva = 'macro';
+    let paisSeleccionado = 'TODOS';
+    let modoVistaMicro = 'cliente';
+    let clientesExpandidos = {};
+
+    let chart1 = null, chart2 = null;
+
+    function iniciarApp() {
+      const cacheData = localStorage.getItem('presupuesto_cache_datos');
+      const cacheEdic = localStorage.getItem('presupuesto_ediciones_2027');
+      const cacheMetas = localStorage.getItem('presupuesto_metas_macro');
+
+      if (cacheData) {
+        try { datosOriginales = JSON.parse(cacheData); } catch(e){}
+      }
+      if (cacheEdic) {
+        try {
+          const mapE = JSON.parse(cacheEdic);
+          datosOriginales.forEach(d => { if (mapE[d.id] !== undefined) d.ppto_2027 = mapE[d.id]; });
+        } catch(e){}
+      }
+      if (cacheMetas) {
+        try { metasMacroFamilia = JSON.parse(cacheMetas); } catch(e){}
+      }
+
+      if (datosOriginales.length > 0) {
+        render();
+        setEstado("⚡ Listo (" + datosOriginales.length + " filas)", "status-badge");
+      }
+
+      fetch('datos_2027.csv?ts=' + Date.now())
+        .then(res => { if (res.ok) return res.text(); throw new Error(); })
+        .then(texto => {
+          const filas = parsearCSV(texto);
+          if (filas.length > 1) {
+            procesarFilas(filas);
+            setEstado("✅ Sincronizado (" + (filas.length - 1) + " filas)", "status-badge");
+          }
+        })
+        .catch(e => {
+          if (datosOriginales.length === 0) {
+            document.getElementById('tb-body').innerHTML = '<tr><td colspan="12" style="text-align:center; padding:20px;">Utilice el botón <strong>📁 Cargar CSV</strong> para cargar los datos.</td></tr>';
+          }
+        });
+    }
+
+    function cargarCSVLocal(inp) {
+      const file = inp.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const filas = parsearCSV(e.target.result);
+        procesarFilas(filas);
+        setEstado("✅ " + (filas.length - 1) + " filas cargadas", "status-badge");
+      };
+      reader.readAsText(file);
+    }
+
+    function parsearCSV(txt) {
+      const lines = txt.split(/\r\n|\n/);
+      const res = [];
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        const celdas = [];
+        let dentro = false, campo = '';
+        for (let j = 0; j < line.length; j++) {
+          const c = line[j];
+          if (c === '"') dentro = !dentro;
+          else if (c === ',' && !dentro) { celdas.push(campo); campo = ''; }
+          else campo += c;
+        }
+        celdas.push(campo);
+        res.push(celdas);
+      }
+      return res;
+    }
+
+    function procesarFilas(filas) {
+      const data = [];
+      for (let i = 1; i < filas.length; i++) {
+        const c = filas[i];
+        if (!c || c.length < 4) continue;
+        data.push({
+          id: i,
+          id_empresa: cleanT(c[0]),
+          gerencia: cleanT(c[1]),
+          razon_social_sec: cleanT(c[2]),
+          familias_agrupadas: cleanT(c[3]),
+          nombre_familia: cleanT(c[4]),
+          ppto_2026: cleanN(c[5]),
+          vta_proy_26: cleanN(c[6]),
+          vta_23: cleanN(c[7]),
+          vta_24: cleanN(c[8]),
+          vta_25: cleanN(c[9]),
+          ppto_2027: cleanN(c[10]) || 0
+        });
+      }
+
+      const cacheEdic = localStorage.getItem('presupuesto_ediciones_2027');
+      if (cacheEdic) {
+        try {
+          const mapE = JSON.parse(cacheEdic);
+          data.forEach(d => { if (mapE[d.id] !== undefined) d.ppto_2027 = mapE[d.id]; });
+        } catch(e){}
+      }
+
+      datosOriginales = data;
+      localStorage.setItem('presupuesto_cache_datos', JSON.stringify(datosOriginales));
+      render();
+    }
+
+    function cleanT(v) { return !v ? '-' : v.toString().replace(/^"|"$/g, '').trim(); }
+    function cleanN(v) {
+      if (!v || v === '-') return 0;
+      let s = v.toString().replace(/^"|"$/g, '').trim();
+      if (s.includes('.') && s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+      else if (s.includes(',')) s = s.replace(',', '.');
+      const n = parseFloat(s.replace(/[^0-9.-]+/g, ""));
+      return isNaN(n) ? 0 : n;
+    }
+    function fmtN(n) { return !n || isNaN(n) ? "0" : Math.round(n).toLocaleString('en-US'); }
+    function calcV(vta, base) { return !base ? (vta > 0 ? 100 : 0) : (((vta / base) - 1) * 100).toFixed(0); }
+    function setEstado(m, c) { const e = document.getElementById('status-indicator'); if (e) { e.innerText = m; e.className = c; } }
+
+    function guardarLocalmente() {
+      const mapE = {};
+      datosOriginales.forEach(d => mapE[d.id] = d.ppto_2027);
+      localStorage.setItem('presupuesto_ediciones_2027', JSON.stringify(mapE));
+      localStorage.setItem('presupuesto_metas_macro', JSON.stringify(metasMacroFamilia));
+      localStorage.setItem('presupuesto_cache_datos', JSON.stringify(datosOriginales));
+      alert("✅ ¡Presupuesto guardado con éxito!");
+    }
+
+    function filtrarPais(p, btn) {
+      paisSeleccionado = p;
+      document.querySelectorAll('.btn-group .btn-item').forEach(b => b.classList.remove('activo'));
+      if (btn) btn.classList.add('activo');
+      render();
+    }
+
+    function cambiarVistaMicro(m) {
+      modoVistaMicro = m;
+      document.getElementById('btn-v-cli').classList.toggle('activo', m === 'cliente');
+      document.getElementById('btn-v-det').classList.toggle('activo', m === 'detallado');
+      render();
+    }
+
+    function mostrarPestana(p) {
+      pestanaActiva = p;
+      document.getElementById('tab-macro').classList.toggle('activo', p === 'macro');
+      document.getElementById('tab-micro').classList.toggle('activo', p === 'micro');
+      document.getElementById('tab-charts').classList.toggle('activo', p === 'charts');
+
+      document.getElementById('sec-tabla').style.display = (p === 'charts') ? 'none' : 'block';
+      document.getElementById('sec-cuadre').style.display = (p === 'micro') ? 'block' : 'none';
+      document.getElementById('vista-controls').style.display = (p === 'micro') ? 'flex' : 'none';
+      document.getElementById('sec-charts').style.display = (p === 'charts') ? 'flex' : 'none';
+
+      if (p === 'charts') updateDashboard();
+      else render();
+    }
+
+    function getFilteredData() {
+      let base = (pestanaActiva === 'macro') ? getMacroData() : datosOriginales;
+      if (paisSeleccionado !== 'TODOS') {
+        base = base.filter(d => d.id_empresa === paisSeleccionado);
+      }
+      return base;
+    }
+
+    function getMacroData() {
+      const map = {};
+      let baseP = datosOriginales;
+      if (paisSeleccionado !== 'TODOS') baseP = datosOriginales.filter(d => d.id_empresa === paisSeleccionado);
+
+      baseP.forEach(item => {
+        const fam = item.familias_agrupadas || 'SIN CLASIFICAR';
+        const key = (paisSeleccionado !== 'TODOS') ? `${paisSeleccionado}_${fam}` : fam;
+        if (!map[fam]) {
+          map[fam] = {
+            id_empresa: (paisSeleccionado !== 'TODOS') ? paisSeleccionado : 'TODOS',
+            familias_agrupadas: fam,
+            ppto_2026: 0, vta_proy_26: 0, vta_25: 0, vta_24: 0, vta_23: 0,
+            ppto_2027_macro: metasMacroFamilia[key] || metasMacroFamilia[fam] || 0
+          };
+        }
+        map[fam].ppto_2026 += Number(item.ppto_2026 || 0);
+        map[fam].vta_proy_26 += Number(item.vta_proy_26 || 0);
+        map[fam].vta_25 += Number(item.vta_25 || 0);
+        map[fam].vta_24 += Number(item.vta_24 || 0);
+        map[fam].vta_23 += Number(item.vta_23 || 0);
+      });
+
+      const totVta = baseP.reduce((s, d) => s + (d.vta_proy_26 || 0), 0);
+      let list = Object.values(map).sort((a, b) => b.vta_proy_26 - a.vta_proy_26);
+      let acum = 0;
+      list.forEach(r => {
+        r.pctPart = totVta > 0 ? (r.vta_proy_26 / totVta) * 100 : 0;
+        acum += r.pctPart;
+        r.pctAcum = acum;
+      });
+      return list;
+    }
+
+    function toggleCli(cli) {
+      clientesExpandidos[cli] = !clientesExpandidos[cli];
+      render();
+    }
+
+    function render() {
+      const data = getFilteredData();
+      const thead = document.getElementById('th-head');
+      const trTot = document.getElementById('tr-totales');
+      const tbody = document.getElementById('tb-body');
+      document.getElementById('txt-filas').innerText = "Mostrando " + data.length + " registros de " + datosOriginales.length + " totales";
+
+      if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:15px;">No hay datos para mostrar.</td></tr>';
+        trTot.innerHTML = '';
+        return;
+      }
+
+      if (pestanaActiva === 'macro') {
+        thead.innerHTML = '<th class="text-left">Empresa (País)</th><th class="text-left">Familia Agrupada (Macro)</th><th>% Part.</th><th>% Acum (80/20)</th><th>PPTO 2026</th><th>VTA + PROY</th><th>VTA 25</th><th>VTA 24</th><th>VTA 23</th><th>PPTO 2027 MACRO</th><th>Var %</th>';
+
+        const tP26 = data.reduce((s, d) => s + d.ppto_2026, 0);
+        const tV26 = data.reduce((s, d) => s + d.vta_proy_26, 0);
+        const tV25 = data.reduce((s, d) => s + d.vta_25, 0);
+        const tV24 = data.reduce((s, d) => s + d.vta_24, 0);
+        const tV23 = data.reduce((s, d) => s + d.vta_23, 0);
+        const tP27 = data.reduce((s, d) => s + d.ppto_2027_macro, 0);
+
+        trTot.innerHTML = '<td class="text-left" colspan="2">TOTAL META MACRO</td><td>100%</td><td>100%</td><td>$' + fmtN(tP26) + '</td><td>$' + fmtN(tV26) + '</td><td>$' + fmtN(tV25) + '</td><td>$' + fmtN(tV24) + '</td><td>$' + fmtN(tV23) + '</td><td id="tot-p27">$' + fmtN(tP27) + '</td><td>' + calcV(tV26, tP27) + '%</td>';
+
+        tbody.innerHTML = '';
+        data.forEach(r => {
+          const isTop = r.pctAcum <= 80 || (r.pctAcum - r.pctPart) < 80;
+          const badge = isTop ? '<span class="badge-top">Top 80%</span>' : '<span class="badge-sec">Secundario</span>';
+          const vVar = calcV(r.vta_proy_26, r.ppto_2027_macro);
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = '<td class="text-left">' + r.id_empresa + '</td>' +
+            '<td class="text-left"><strong>' + r.familias_agrupadas + '</strong> ' + badge + '</td>' +
+            '<td>' + r.pctPart.toFixed(1) + '%</td><td>' + r.pctAcum.toFixed(1) + '%</td>' +
+            '<td>$' + fmtN(r.ppto_2026) + '</td><td>$' + fmtN(r.vta_proy_26) + '</td>' +
+            '<td>$' + fmtN(r.vta_25) + '</td><td>$' + fmtN(r.vta_24) + '</td><td>$' + fmtN(r.vta_23) + '</td>' +
+            '<td style="background:#ebf8ff;"><input type="text" class="inp-ppto" value="' + fmtN(r.ppto_2027_macro) + '" onfocus="focusZero(this)" oninput="updMetaMacro(this, \'' + r.familias_agrupadas + '\')" onblur="blurFmt(this)"></td>' +
+            '<td class="' + (vVar >= 0 ? 'verde' : 'rojo') + '">' + vVar + '%</td>';
+          tbody.appendChild(tr);
+        });
+
+      } else {
+        const tP26 = data.reduce((s, d) => s + d.ppto_2026, 0);
+        const tV26 = data.reduce((s, d) => s + d.vta_proy_26, 0);
+        const tV25 = data.reduce((s, d) => s + d.vta_25, 0);
+        const tV24 = data.reduce((s, d) => s + d.vta_24, 0);
+        const tV23 = data.reduce((s, d) => s + d.vta_23, 0);
+        const tP27 = datosOriginales.reduce((s, d) => s + d.ppto_2027, 0);
+
+        if (modoVistaMicro === 'cliente') {
+          thead.innerHTML = '<th class="text-left">Empresa (País)</th><th class="text-left">Cliente (razon_social_sec)</th><th>% Part.</th><th>% Acum (80/20)</th><th>PPTO 2026</th><th>VTA + PROY</th><th>VTA 25</th><th>VTA 24</th><th>VTA 23</th><th>PPTO 2027 CLIENTE</th><th>Var %</th>';
+          trTot.innerHTML = '<td class="text-left" colspan="2">TOTAL EMPRESA / CLIENTES</td><td>100%</td><td>100%</td><td>$' + fmtN(tP26) + '</td><td>$' + fmtN(tV26) + '</td><td>$' + fmtN(tV25) + '</td><td>$' + fmtN(tV24) + '</td><td>$' + fmtN(tV23) + '</td><td id="tot-p27">$' + fmtN(tP27) + '</td><td>' + calcV(tV26, tP27) + '%</td>';
+
+          const mapC = {};
+          data.forEach(item => {
+            const cli = item.razon_social_sec || 'SIN CLIENTE';
+            if (!mapC[cli]) {
+              mapC[cli] = { nombre: cli, empresa: item.id_empresa, ppto_2026: 0, vta_proy_26: 0, vta_25: 0, vta_24: 0, vta_23: 0, ppto_2027: 0, hijos: [] };
+            }
+            mapC[cli].ppto_2026 += item.ppto_2026;
+            mapC[cli].vta_proy_26 += item.vta_proy_26;
+            mapC[cli].vta_25 += item.vta_25;
+            mapC[cli].vta_24 += item.vta_24;
+            mapC[cli].vta_23 += item.vta_23;
+            mapC[cli].ppto_2027 += item.ppto_2027;
+            mapC[cli].hijos.push(item);
+          });
+
+          const totV = Object.values(mapC).reduce((s, c) => s + c.vta_proy_26, 0);
+          let listC = Object.values(mapC).sort((a, b) => b.vta_proy_26 - a.vta_proy_26);
+
+          let acum = 0;
+          tbody.innerHTML = '';
+          listC.forEach(cli => {
+            cli.pctPart = totV > 0 ? (cli.vta_proy_26 / totV) * 100 : 0;
+            acum += cli.pctPart;
+            cli.pctAcum = acum;
+
+            const isTop = cli.pctAcum <= 80 || (cli.pctAcum - cli.pctPart) < 80;
+            const badge = isTop ? '<span class="badge-top">Top 80%</span>' : '<span class="badge-sec">Secundario</span>';
+            const open = clientesExpandidos[cli.nombre] === true;
+            const icon = open ? '▼' : '▶';
+            const vVar = calcV(cli.vta_proy_26, cli.ppto_2027);
+
+            const trP = document.createElement('tr');
+            trP.className = 'row-padre';
+            trP.innerHTML = '<td class="text-left"><button class="btn-toggle" onclick="toggleCli(\'' + cli.nombre.replace(/'/g, "\\'") + '\')">' + icon + '</button>' + cli.empresa + '</td>' +
+              '<td class="text-left">' + cli.nombre + ' ' + badge + '</td>' +
+              '<td>' + cli.pctPart.toFixed(1) + '%</td><td>' + cli.pctAcum.toFixed(1) + '%</td>' +
+              '<td>$' + fmtN(cli.ppto_2026) + '</td><td>$' + fmtN(cli.vta_proy_26) + '</td>' +
+              '<td>$' + fmtN(cli.vta_25) + '</td><td>$' + fmtN(cli.vta_24) + '</td><td>$' + fmtN(cli.vta_23) + '</td>' +
+              '<td style="background:#e2e8f0;"><input type="text" class="inp-ppto" value="' + fmtN(cli.ppto_2027) + '" onfocus="focusZero(this)" oninput="updConsolidadoCli(this, \'' + cli.nombre.replace(/'/g, "\\'") + '\')" onblur="blurFmt(this)"></td>' +
+              '<td class="' + (vVar >= 0 ? 'verde' : 'rojo') + '">' + vVar + '%</td>';
+            tbody.appendChild(trP);
+
+            cli.hijos.forEach(h => {
+              const trH = document.createElement('tr');
+              trH.className = 'row-hijo' + (open ? ' open' : '');
+              const hVar = calcV(h.vta_proy_26, h.ppto_2027);
+
+              trH.innerHTML = '<td class="text-left indent">↳ ' + (h.gerencia || 'GENERAL') + '</td>' +
+                '<td class="text-left" colspan="3">↳ <strong>' + h.familias_agrupadas + '</strong> (' + h.nombre_familia + ')</td>' +
+                '<td>$' + fmtN(h.ppto_2026) + '</td><td>$' + fmtN(h.vta_proy_26) + '</td>' +
+                '<td>$' + fmtN(h.vta_25) + '</td><td>$' + fmtN(h.vta_24) + '</td><td>$' + fmtN(h.vta_23) + '</td>' +
+                '<td style="background:#ebf8ff;"><input type="text" class="inp-ppto" value="' + fmtN(h.ppto_2027) + '" onfocus="focusZero(this)" oninput="updItemPpto(this, ' + h.id + ')" onblur="blurFmt(this)"></td>' +
+                '<td class="' + (hVar >= 0 ? 'verde' : 'rojo') + '">' + hVar + '%</td>';
+              tbody.appendChild(trH);
+            });
+          });
+
+        } else {
+          thead.innerHTML = '<th class="text-left">Empresa (País)</th><th class="text-left">Gerencia</th><th class="text-left">Cliente</th><th class="text-left">Familia</th><th class="text-left">Nombre Familia</th><th>PPTO 2026</th><th>VTA + PROY</th><th>VTA 25</th><th>VTA 24</th><th>VTA 23</th><th>PPTO 2027</th><th>Var %</th>';
+          trTot.innerHTML = '<td class="text-left" colspan="5">TOTAL DETALLE CLIENTES</td><td>$' + fmtN(tP26) + '</td><td>$' + fmtN(tV26) + '</td><td>$' + fmtN(tV25) + '</td><td>$' + fmtN(tV24) + '</td><td>$' + fmtN(tV23) + '</td><td id="tot-p27">$' + fmtN(tP27) + '</td><td>' + calcV(tV26, tP27) + '%</td>';
+
+          tbody.innerHTML = '';
+          data.forEach(r => {
+            const vVar = calcV(r.vta_proy_26, r.ppto_2027);
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<td class="text-left">' + r.id_empresa + '</td>' +
+              '<td class="text-left">' + r.gerencia + '</td>' +
+              '<td class="text-left">' + r.razon_social_sec + '</td>' +
+              '<td class="text-left">' + r.familias_agrupadas + '</td>' +
+              '<td class="text-left">' + r.nombre_familia + '</td>' +
+              '<td>$' + fmtN(r.ppto_2026) + '</td><td>$' + fmtN(r.vta_proy_26) + '</td>' +
+              '<td>$' + fmtN(r.vta_25) + '</td><td>$' + fmtN(r.vta_24) + '</td><td>$' + fmtN(r.vta_23) + '</td>' +
+              '<td style="background:#ebf8ff;"><input type="text" class="inp-ppto" value="' + fmtN(r.ppto_2027) + '" onfocus="focusZero(this)" oninput="updItemPpto(this, ' + r.id + ')" onblur="blurFmt(this)"></td>' +
+              '<td class="' + (vVar >= 0 ? 'verde' : 'rojo') + '">' + vVar + '%</td>';
+            tbody.appendChild(tr);
+          });
+        }
+        renderCuadre();
+      }
+    }
+
+    function renderCuadre() {
+      const tb = document.getElementById('tb-cuadre');
+      if (!tb) return;
+      const macro = getMacroData();
+      tb.innerHTML = '';
+
+      macro.forEach(f => {
+        const fam = f.familias_agrupadas;
+        const key = (paisSeleccionado !== 'TODOS') ? `${paisSeleccionado}_${fam}` : fam;
+        const meta = Number(metasMacroFamilia[key] || metasMacroFamilia[fam] || 0);
+
+        let items = datosOriginales.filter(d => (d.familias_agrupadas || 'SIN CLASIFICAR') === fam);
+        if (paisSeleccionado !== 'TODOS') items = items.filter(d => d.id_empresa === paisSeleccionado);
+
+        const sum = items.reduce((s, i) => s + Number(i.ppto_2027 || 0), 0);
+        const dif = sum - meta;
+        let badge = '';
+
+        if (meta === 0 && sum === 0) badge = '<span class="alerta-cuadre ok">Sin Meta</span>';
+        else if (Math.abs(dif) < 1) badge = '<span class="alerta-cuadre ok">🟢 100%</span>';
+        else if (dif > 0) badge = '<span class="alerta-cuadre exceso">🔴 +$' + fmtN(dif) + '</span>';
+        else badge = '<span class="alerta-cuadre falta">⚠ -$' + fmtN(Math.abs(dif)) + '</span>';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td class="text-left" title="' + fam + '">' + (fam.length > 14 ? fam.substring(0, 14) + '..' : fam) + '</td>' +
+          '<td>$' + fmtN(meta) + '</td><td>$' + fmtN(sum) + '</td><td>' + badge + '</td>';
+        tb.appendChild(tr);
+      });
+    }
+
+    // AUTO-BORRADO AL ENFOCAR $0
+    function focusZero(inp) {
+      if (inp.value === "0" || inp.value === "$0") inp.value = "";
+    }
+
+    function blurFmt(inp) {
+      const n = cleanN(inp.value);
+      inp.value = fmtN(n);
+    }
+
+    function updMetaMacro(inp, fam) {
+      const v = cleanN(inp.value);
+      const key = (paisSeleccionado !== 'TODOS') ? `${paisSeleccionado}_${fam}` : fam;
+      metasMacroFamilia[key] = v;
+      metasMacroFamilia[fam] = v;
+      localStorage.setItem('presupuesto_metas_macro', JSON.stringify(metasMacroFamilia));
+      updTotalesOnly();
+    }
+
+    function updConsolidadoCli(inp, cli) {
+      const tot = cleanN(inp.value);
+      const items = datosOriginales.filter(d => (d.razon_social_sec || 'SIN CLIENTE') === cli);
+      const sumV = items.reduce((s, i) => s + i.vta_proy_26, 0);
+
+      items.forEach(i => {
+        if (sumV > 0) i.ppto_2027 = Math.round((i.vta_proy_26 / sumV) * tot);
+        else i.ppto_2027 = Math.round(tot / items.length);
+      });
+      updTotalesOnly();
+    }
+
+    function updItemPpto(inp, id) {
+      const v = cleanN(inp.value);
+      const item = datosOriginales.find(d => d.id === id);
+      if (item) { item.ppto_2027 = v; updTotalesOnly(); }
+    }
+
+    function updTotalesOnly() {
+      if (pestanaActiva === 'macro') {
+        const data = getFilteredData();
+        const t = data.reduce((s, d) => s + (d.ppto_2027_macro || 0), 0);
+        document.getElementById('tot-p27').innerText = '$' + fmtN(t);
+      } else {
+        const t = datosOriginales.reduce((s, d) => s + (d.ppto_2027 || 0), 0);
+        document.getElementById('tot-p27').innerText = '$' + fmtN(t);
+        renderCuadre();
+      }
+    }
+
+    function updateDashboard() {
+      let data = datosOriginales;
+      if (paisSeleccionado !== 'TODOS') data = data.filter(d => d.id_empresa === paisSeleccionado);
+      if (data.length === 0) return;
+
+      const mapC = {};
+      data.forEach(d => {
+        const c = d.razon_social_sec || 'OTROS';
+        if (!mapC[c]) mapC[c] = { v25: 0, v26: 0, p27: 0 };
+        mapC[c].v25 += d.vta_25; mapC[c].v26 += d.vta_proy_26; mapC[c].p27 += d.ppto_2027;
+      });
+
+      const topC = Object.entries(mapC).sort((a,b) => b[1].p27 - a[1].p27).slice(0, 10);
+      const lblsC = topC.map(c => c[0].length > 15 ? c[0].substring(0,15) + '..' : c[0]);
+
+      if (chart1) chart1.destroy();
+      chart1 = new Chart(document.getElementById('chartClientes'), {
+        type: 'bar',
+        data: {
+          labels: lblsC,
+          datasets: [
+            { label: 'VTA 25', data: topC.map(c => c[1].v25), backgroundColor: '#a0aec0' },
+            { label: 'VTA + PROY 26', data: topC.map(c => c[1].v26), backgroundColor: '#718096' },
+            { label: 'PPTO 2027', data: topC.map(c => c[1].p27), backgroundColor: '#3182ce' }
+          ]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+      });
+
+      const mapF = {};
+      data.forEach(d => {
+        const f = d.familias_agrupadas || 'OTROS';
+        if (!mapF[f]) mapF[f] = 0;
+        mapF[f] += d.ppto_2027;
+      });
+
+      const topF = Object.entries(mapF).sort((a,b) => b[1] - a[1]).slice(0, 8);
+      if (chart2) chart2.destroy();
+      chart2 = new Chart(document.getElementById('chartFamilias'), {
+        type: 'bar',
+        data: {
+          labels: topF.map(f => f[0]),
+          datasets: [{ label: 'PPTO 2027', data: topF.map(f => f[1]), backgroundColor: '#38a169' }]
+        },
+        options: { indexAxis: 'y', responsive: true, plugins: { legend: { position: 'bottom' } } }
+      });
+    }
+
+    function toggleMenu(e) {
+      e.stopPropagation();
+      document.getElementById('dropdown-opts').classList.toggle('show');
+    }
+
+    document.addEventListener('click', () => {
+      const drop = document.getElementById('dropdown-opts');
+      if (drop) drop.classList.remove('show');
+    });
+
+    function copiarAlPortapapeles() {
+      const data = getFilteredData();
+      let clip = "Id_empresa\tGerencia\trazon_social_sec\tFamilias Agrupadas\tnombre_familia\tPPTO 2026\tVTA + PROY 26\tVTA 23\tVTA 24\tVTA 25\tPPTO 2027\n";
+      data.forEach(d => {
+        clip += d.id_empresa + '\t' + d.gerencia + '\t' + d.razon_social_sec + '\t' + d.familias_agrupadas + '\t' + d.nombre_familia + '\t' + d.ppto_2026 + '\t' + d.vta_proy_26 + '\t' + d.vta_23 + '\t' + d.vta_24 + '\t' + d.vta_25 + '\t' + d.ppto_2027 + '\n';
+      });
+      navigator.clipboard.writeText(clip).then(() => alert("¡Datos copiados al portapapeles!"));
+    }
+
+    function descargarCSV() {
+      const data = getFilteredData();
+      let csv = "\uFEFFId_empresa,Gerencia,razon_social_sec,Familias Agrupadas,nombre_familia,PPTO 2026,VTA + PROY 26,VTA 23,VTA 24,VTA 25,PPTO 2027\n";
+      data.forEach(d => {
+        csv += `"${d.id_empresa}","${d.gerencia}","${d.razon_social_sec}","${d.familias_agrupadas}","${d.nombre_familia}",${d.ppto_2026},${d.vta_proy_26},${d.vta_23},${d.vta_24},${d.vta_25},${d.ppto_2027}\n`;
+      });
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "Presupuesto_2027.csv";
+      link.click();
+    }
+
+    iniciarApp();
+  </script>
+</body>
+</html>
