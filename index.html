@@ -35,26 +35,27 @@
     .main-layout { display: flex; gap: 8px; width: 100%; align-items: flex-start; }
     .table-card { flex: 1; background: #fff; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); max-height: 78vh; overflow: auto; position: relative; }
     
-    /* TABLAS OPTIMIZADAS */
+    /* TABLAS Y ENCABEZADOS DE FILTRO */
     table { width: 100%; border-collapse: collapse; font-size: 9.5px; }
     th { background: #2d3748; color: white; padding: 5px 3px; font-weight: 700; text-align: right; position: sticky; top: 0; z-index: 10; white-space: nowrap; user-select: none; font-size: 9.5px; }
     th.text-left { text-align: left; }
     
-    .th-container { display: flex; align-items: center; justify-content: space-between; gap: 2px; }
-    .btn-filter-excel { background: transparent; border: none; color: #cbd5e0; cursor: pointer; font-size: 9px; padding: 0 2px; border-radius: 2px; }
-    .btn-filter-excel:hover, .btn-filter-excel.activo { color: #fff; background: rgba(255,255,255,0.25); }
+    .th-container { display: flex; align-items: center; justify-content: space-between; gap: 4px; width: 100%; }
+    .btn-filter-excel { background: transparent; border: none; color: #a0aec0; cursor: pointer; font-size: 9px; padding: 1px 3px; border-radius: 2px; }
+    .btn-filter-excel:hover, .btn-filter-excel.activo { color: #fff; background: rgba(255,255,255,0.3); font-weight: bold; }
 
     /* POPUP DE FILTRO ESTILO EXCEL */
-    .excel-filter-popup { display: none; position: absolute; background: #ffffff; color: #2d3748; border: 1px solid #cbd5e0; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); width: 230px; z-index: 500; font-size: 10px; padding: 6px; text-align: left; }
+    .excel-filter-popup { display: none; position: absolute; background: #ffffff; color: #2d3748; border: 1px solid #cbd5e0; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); width: 240px; z-index: 500; font-size: 10px; padding: 8px; text-align: left; }
     .excel-filter-popup.show { display: block; }
-    .filter-opt-item { padding: 5px 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; border-radius: 4px; font-weight: 500; }
-    .filter-opt-item:hover { background: #edf2f7; color: #2b6cb0; }
+    .filter-opt-item { padding: 5px 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; border-radius: 4px; font-weight: 600; color: #2d3748; }
+    .filter-opt-item:hover { background: #ebf8ff; color: #2b6cb0; }
     .filter-divider { height: 1px; background: #e2e8f0; margin: 4px 0; }
-    .filter-search-box { width: 100%; padding: 3px 6px; font-size: 10px; border: 1px solid #cbd5e0; border-radius: 4px; margin-bottom: 4px; }
-    .filter-checkbox-list { max-height: 130px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px; padding: 3px; background: #faf5ff; }
-    .filter-checkbox-item { display: flex; align-items: center; gap: 4px; padding: 2px 3px; font-size: 9.5px; cursor: pointer; }
-    .filter-checkbox-item:hover { background: #ebf8ff; }
-    .filter-actions { display: flex; justify-content: flex-end; gap: 4px; margin-top: 6px; }
+    .filter-search-box { width: 100%; padding: 4px 6px; font-size: 10px; border: 1px solid #cbd5e0; border-radius: 4px; margin-bottom: 6px; outline: none; }
+    .filter-search-box:focus { border-color: #3182ce; }
+    .filter-checkbox-list { max-height: 140px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px; padding: 4px; background: #ffffff; }
+    .filter-checkbox-item { display: flex; align-items: center; gap: 6px; padding: 3px 4px; font-size: 9.5px; cursor: pointer; }
+    .filter-checkbox-item:hover { background: #f7fafc; }
+    .filter-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
 
     td { padding: 4px 3px; border-bottom: 1px solid #edf2f7; text-align: right; white-space: nowrap; }
     td.text-left { text-align: left; }
@@ -229,7 +230,9 @@
     let clientesExpandidos = {};
 
     let filtrosExcelActivos = {};
+    let ordenColumnas = { campo: null, dir: null };
     let campoPopupActual = null;
+    let esCampoNumActual = false;
 
     let chart1 = null, chart2 = null;
 
@@ -357,7 +360,7 @@
       return (((v / b) - 1) * 100).toFixed(0);
     }
 
-    // REGLA DE SEMAFORIZACIÓN: NEGATIVO ROJO (< 0%), CERO AMARILLO (= 0%), POSITIVO VERDE (>= 1%)
+    // SEMAFORIZACIÓN: NEGATIVO ROJO (< 0%), CERO AMARILLO (= 0%), POSITIVO VERDE (>= 1%)
     function getSemaforoClass(valPct) {
       const n = Number(valPct);
       if (n < 0) return 'sem-rojo';
@@ -405,10 +408,11 @@
       else render();
     }
 
-    /* FILTROS EMERGENTES ESTILO EXCEL CON ÍCONO 🔻 */
+    /* FILTROS EMERGENTES ESTILO EXCEL CON ÍCONO 🔻 REESTRUCTURADO */
     function abrirPopupFiltroExcel(event, campo, esNum) {
       event.stopPropagation();
       campoPopupActual = campo;
+      esCampoNumActual = esNum;
       const popup = document.getElementById('popup-excel-filter');
 
       document.getElementById('label-ord-asc').innerText = esNum ? "🔼 Ordenar de menor a mayor" : "🔼 Ordenar de A a Z";
@@ -416,7 +420,15 @@
       document.getElementById('popup-search-input').value = "";
 
       let datosBase = (pestanaActiva === 'macro') ? getMacroData() : datosOriginales;
-      const valoresUnicos = [...new Set(datosBase.map(d => (d[campo] !== undefined && d[campo] !== null) ? d[campo].toString() : '(en blanco)'))].sort();
+      if (pestanaActiva === 'micro' && modoVistaMicro === 'cliente') {
+        datosBase = getClientesConsolidados();
+      }
+
+      const valoresUnicos = [...new Set(datosBase.map(d => {
+        let v = d[campo];
+        if (v === undefined || v === null) return '(en blanco)';
+        return typeof v === 'number' ? Math.round(v).toString() : v.toString();
+      }))].sort((a,b) => esNum ? (parseFloat(a)|0)-(parseFloat(b)|0) : a.localeCompare(b));
 
       const container = document.getElementById('popup-checkbox-container');
       container.innerHTML = "";
@@ -451,6 +463,12 @@
       });
     }
 
+    function ejecutarOrdenExcel(dir) {
+      ordenColumnas = { campo: campoPopupActual, dir: dir, esNum: esCampoNumActual };
+      cerrarPopupFiltroExcel();
+      render();
+    }
+
     function aplicarFiltroPopupExcel() {
       const checkboxes = document.querySelectorAll('.chk-popup-item');
       const seleccionados = new Set();
@@ -462,6 +480,7 @@
 
     function limpiarTodosFiltrosExcel() {
       filtrosExcelActivos = {};
+      ordenColumnas = { campo: null, dir: null };
       paisSeleccionado = 'TODOS';
       document.querySelectorAll('.btn-group .btn-item').forEach(b => b.classList.remove('activo'));
       document.querySelectorAll('.btn-group .btn-item')[0].classList.add('activo');
@@ -474,20 +493,40 @@
       }
     });
 
-    function getFilteredData() {
-      let base = (pestanaActiva === 'macro') ? getMacroData() : datosOriginales;
-      return base.filter(d => {
-        if (paisSeleccionado !== 'TODOS' && d.id_empresa !== paisSeleccionado) return false;
-        for (let campo in filtrosExcelActivos) {
-          const permitidos = filtrosExcelActivos[campo];
-          let valStr = (d[campo] !== undefined && d[campo] !== null) ? d[campo].toString() : '(en blanco)';
-          if (permitidos && !permitidos.has(valStr)) return false;
+    function getClientesConsolidados() {
+      const mapC = {};
+      let base = datosOriginales;
+      if (paisSeleccionado !== 'TODOS') base = base.filter(d => d.id_empresa === paisSeleccionado);
+
+      base.forEach(item => {
+        const cli = item.razon_social_sec || 'SIN CLIENTE';
+        if (!mapC[cli]) {
+          mapC[cli] = { id_empresa: item.id_empresa, razon_social_sec: cli, ppto_2026: 0, vta_proy_26: 0, vta_25: 0, vta_24: 0, vta_23: 0, ppto_2027: 0, hijos: [] };
         }
-        return true;
+        mapC[cli].ppto_2026 += item.ppto_2026;
+        mapC[cli].vta_proy_26 += item.vta_proy_26;
+        mapC[cli].vta_25 += item.vta_25;
+        mapC[cli].vta_24 += item.vta_24;
+        mapC[cli].vta_23 += item.vta_23;
+        mapC[cli].ppto_2027 += item.ppto_2027;
+        mapC[cli].hijos.push(item);
       });
+
+      const totV = Object.values(mapC).reduce((s, c) => s + c.vta_proy_26, 0);
+      let listC = Object.values(mapC).sort((a, b) => b.vta_proy_26 - a.vta_proy_26);
+      let acum = 0;
+      listC.forEach(cli => {
+        cli.pctPart = totV > 0 ? (cli.vta_proy_26 / totV) * 100 : 0;
+        acum += cli.pctPart;
+        cli.pctAcum = acum;
+        cli.vta_26vs27 = calcVarPct(cli.vta_proy_26, cli.ppto_2027);
+        cli.vta_26vs25 = calcVarPct(cli.vta_proy_26, cli.vta_25);
+        cli.vta_26vs24 = calcVarPct(cli.vta_proy_26, cli.vta_24);
+        cli.vta_26vs23 = calcVarPct(cli.vta_proy_26, cli.vta_23);
+      });
+      return listC;
     }
 
-    /* PARETO 80/20 Y ORDENAMIENTO BASADO EN VTA + PROY 26 */
     function getMacroData() {
       const map = {};
       let baseP = datosOriginales;
@@ -519,8 +558,51 @@
         r.pctPart = totVta26 > 0 ? (r.vta_proy_26 / totVta26) * 100 : 0;
         acum += r.pctPart;
         r.pctAcum = acum;
+        r.vta_26vs27 = calcVarPct(r.vta_proy_26, r.ppto_2027_macro);
+        r.vta_26vs25 = calcVarPct(r.vta_proy_26, r.vta_25);
+        r.vta_26vs24 = calcVarPct(r.vta_proy_26, r.vta_24);
+        r.vta_26vs23 = calcVarPct(r.vta_proy_26, r.vta_23);
       });
       return list;
+    }
+
+    function getFilteredData() {
+      let base = (pestanaActiva === 'macro') ? getMacroData() : (modoVistaMicro === 'cliente' ? getClientesConsolidados() : datosOriginales);
+
+      // FILTRAR POR PAÍS
+      if (paisSeleccionado !== 'TODOS') {
+        base = base.filter(d => d.id_empresa === paisSeleccionado);
+      }
+
+      // FILTRAR POR COLUMNAS EXCEL
+      for (let campo in filtrosExcelActivos) {
+        const permitidos = filtrosExcelActivos[campo];
+        if (permitidos && permitidos.size > 0) {
+          base = base.filter(d => {
+            let val = d[campo];
+            let strVal = (val === undefined || val === null) ? '(en blanco)' : (typeof val === 'number' ? Math.round(val).toString() : val.toString());
+            return permitidos.has(strVal);
+          });
+        }
+      }
+
+      // ORDENAR SI HAY COLUMNA SELECCIONADA
+      if (ordenColumnas.campo) {
+        const c = ordenColumnas.campo;
+        const asc = ordenColumnas.dir === 'asc';
+        const num = ordenColumnas.esNum;
+
+        base.sort((a, b) => {
+          let va = a[c] || 0, vb = b[c] || 0;
+          if (num) {
+            return asc ? (parseFloat(va) - parseFloat(vb)) : (parseFloat(vb) - parseFloat(va));
+          } else {
+            return asc ? va.toString().localeCompare(vb.toString()) : vb.toString().localeCompare(va.toString());
+          }
+        });
+      }
+
+      return base;
     }
 
     function toggleCli(cli) {
@@ -557,7 +639,10 @@
           crearThHTML('VTA 24', 'vta_24', true) +
           crearThHTML('VTA 23', 'vta_23', true) +
           crearThHTML('PPTO 2027 MACRO', 'ppto_2027_macro', true) +
-          '<th>VTA 26VS27</th><th>VTA 26VS25</th><th>VTA 26VS24</th><th>VTA 26VS23</th>';
+          crearThHTML('VTA 26VS27', 'vta_26vs27', true) +
+          crearThHTML('VTA 26VS25', 'vta_26vs25', true) +
+          crearThHTML('VTA 26VS24', 'vta_26vs24', true) +
+          crearThHTML('VTA 26VS23', 'vta_26vs23', true);
 
         const tP26 = data.reduce((s, d) => s + d.ppto_2026, 0);
         const tV26 = data.reduce((s, d) => s + d.vta_proy_26, 0);
@@ -582,11 +667,6 @@
           const isTop = r.pctAcum <= 80 || (r.pctAcum - r.pctPart) < 80;
           const badge = isTop ? '<span class="badge-top">Top 80%</span>' : '<span class="badge-sec">Secundario</span>';
 
-          const v27 = calcVarPct(r.vta_proy_26, r.ppto_2027_macro);
-          const v25 = calcVarPct(r.vta_proy_26, r.vta_25);
-          const v24 = calcVarPct(r.vta_proy_26, r.vta_24);
-          const v23 = calcVarPct(r.vta_proy_26, r.vta_23);
-
           const tr = document.createElement('tr');
           tr.innerHTML = '<td class="text-left">' + r.id_empresa + '</td>' +
             '<td class="text-left"><strong>' + r.familias_agrupadas + '</strong> ' + badge + '</td>' +
@@ -594,10 +674,10 @@
             '<td>$' + fmtN(r.ppto_2026) + '</td><td>$' + fmtN(r.vta_proy_26) + '</td>' +
             '<td>$' + fmtN(r.vta_25) + '</td><td>$' + fmtN(r.vta_24) + '</td><td>$' + fmtN(r.vta_23) + '</td>' +
             '<td style="background:#ebf8ff;"><input type="text" class="inp-ppto" value="' + fmtN(r.ppto_2027_macro) + '" onfocus="focusZero(this)" oninput="updMetaMacro(this, \'' + r.familias_agrupadas + '\')" onblur="blurFmt(this)"></td>' +
-            '<td class="' + getSemaforoClass(v27) + '">' + v27 + '%</td>' +
-            '<td class="' + getSemaforoClass(v25) + '">' + v25 + '%</td>' +
-            '<td class="' + getSemaforoClass(v24) + '">' + v24 + '%</td>' +
-            '<td class="' + getSemaforoClass(v23) + '">' + v23 + '%</td>';
+            '<td class="' + getSemaforoClass(r.vta_26vs27) + '">' + r.vta_26vs27 + '%</td>' +
+            '<td class="' + getSemaforoClass(r.vta_26vs25) + '">' + r.vta_26vs25 + '%</td>' +
+            '<td class="' + getSemaforoClass(r.vta_26vs24) + '">' + r.vta_26vs24 + '%</td>' +
+            '<td class="' + getSemaforoClass(r.vta_26vs23) + '">' + r.vta_26vs23 + '%</td>';
           tbody.appendChild(tr);
         });
 
@@ -625,7 +705,10 @@
             crearThHTML('VTA 24', 'vta_24', true) +
             crearThHTML('VTA 23', 'vta_23', true) +
             crearThHTML('PPTO 2027 CLIENTE', 'ppto_2027', true) +
-            '<th>VTA 26VS27</th><th>VTA 26VS25</th><th>VTA 26VS24</th><th>VTA 26VS23</th>';
+            crearThHTML('VTA 26VS27', 'vta_26vs27', true) +
+            crearThHTML('VTA 26VS25', 'vta_26vs25', true) +
+            crearThHTML('VTA 26VS24', 'vta_26vs24', true) +
+            crearThHTML('VTA 26VS23', 'vta_26vs23', true);
 
           trTot.innerHTML = '<td class="text-left" colspan="2">TOTAL EMPRESA / CLIENTES</td><td>100%</td><td>100%</td><td>$' + fmtN(tP26) + '</td><td>$' + fmtN(tV26) + '</td><td>$' + fmtN(tV25) + '</td><td>$' + fmtN(tV24) + '</td><td>$' + fmtN(tV23) + '</td><td id="tot-p27">$' + fmtN(tP27) + '</td>' +
             '<td class="' + getSemaforoClass(v27_tot) + '">' + v27_tot + '%</td>' +
@@ -633,53 +716,25 @@
             '<td class="' + getSemaforoClass(v24_tot) + '">' + v24_tot + '%</td>' +
             '<td class="' + getSemaforoClass(v23_tot) + '">' + v23_tot + '%</td>';
 
-          const mapC = {};
-          data.forEach(item => {
-            const cli = item.razon_social_sec || 'SIN CLIENTE';
-            if (!mapC[cli]) {
-              mapC[cli] = { nombre: cli, empresa: item.id_empresa, ppto_2026: 0, vta_proy_26: 0, vta_25: 0, vta_24: 0, vta_23: 0, ppto_2027: 0, hijos: [] };
-            }
-            mapC[cli].ppto_2026 += item.ppto_2026;
-            mapC[cli].vta_proy_26 += item.vta_proy_26;
-            mapC[cli].vta_25 += item.vta_25;
-            mapC[cli].vta_24 += item.vta_24;
-            mapC[cli].vta_23 += item.vta_23;
-            mapC[cli].ppto_2027 += item.ppto_2027;
-            mapC[cli].hijos.push(item);
-          });
-
-          const totV26Cli = Object.values(mapC).reduce((s, c) => s + c.vta_proy_26, 0);
-          let listC = Object.values(mapC).sort((a, b) => b.vta_proy_26 - a.vta_proy_26);
-
-          let acum = 0;
           tbody.innerHTML = '';
-          listC.forEach(cli => {
-            cli.pctPart = totV26Cli > 0 ? (cli.vta_proy_26 / totV26Cli) * 100 : 0;
-            acum += cli.pctPart;
-            cli.pctAcum = acum;
-
+          data.forEach(cli => {
             const isTop = cli.pctAcum <= 80 || (cli.pctAcum - cli.pctPart) < 80;
             const badge = isTop ? '<span class="badge-top">Top 80%</span>' : '<span class="badge-sec">Secundario</span>';
-            const open = clientesExpandidos[cli.nombre] === true;
+            const open = clientesExpandidos[cli.nombre || cli.razon_social_sec] === true;
             const icon = open ? '▼' : '▶';
-
-            const v27 = calcVarPct(cli.vta_proy_26, cli.ppto_2027);
-            const v25 = calcVarPct(cli.vta_proy_26, cli.vta_25);
-            const v24 = calcVarPct(cli.vta_proy_26, cli.vta_24);
-            const v23 = calcVarPct(cli.vta_proy_26, cli.vta_23);
 
             const trP = document.createElement('tr');
             trP.className = 'row-padre';
-            trP.innerHTML = '<td class="text-left"><button class="btn-toggle" onclick="toggleCli(\'' + cli.nombre.replace(/'/g, "\\'") + '\')">' + icon + '</button>' + cli.empresa + '</td>' +
-              '<td class="text-left">' + cli.nombre + ' ' + badge + '</td>' +
+            trP.innerHTML = '<td class="text-left"><button class="btn-toggle" onclick="toggleCli(\'' + (cli.nombre || cli.razon_social_sec).replace(/'/g, "\\'") + '\')">' + icon + '</button>' + cli.id_empresa + '</td>' +
+              '<td class="text-left">' + (cli.nombre || cli.razon_social_sec) + ' ' + badge + '</td>' +
               '<td>' + cli.pctPart.toFixed(1) + '%</td><td>' + cli.pctAcum.toFixed(1) + '%</td>' +
               '<td>$' + fmtN(cli.ppto_2026) + '</td><td>$' + fmtN(cli.vta_proy_26) + '</td>' +
               '<td>$' + fmtN(cli.vta_25) + '</td><td>$' + fmtN(cli.vta_24) + '</td><td>$' + fmtN(cli.vta_23) + '</td>' +
-              '<td style="background:#e2e8f0;"><input type="text" class="inp-ppto" value="' + fmtN(cli.ppto_2027) + '" onfocus="focusZero(this)" oninput="updConsolidadoCli(this, \'' + cli.nombre.replace(/'/g, "\\'") + '\')" onblur="blurFmt(this)"></td>' +
-              '<td class="' + getSemaforoClass(v27) + '">' + v27 + '%</td>' +
-              '<td class="' + getSemaforoClass(v25) + '">' + v25 + '%</td>' +
-              '<td class="' + getSemaforoClass(v24) + '">' + v24 + '%</td>' +
-              '<td class="' + getSemaforoClass(v23) + '">' + v23 + '%</td>';
+              '<td style="background:#e2e8f0;"><input type="text" class="inp-ppto" value="' + fmtN(cli.ppto_2027) + '" onfocus="focusZero(this)" oninput="updConsolidadoCli(this, \'' + (cli.nombre || cli.razon_social_sec).replace(/'/g, "\\'") + '\')" onblur="blurFmt(this)"></td>' +
+              '<td class="' + getSemaforoClass(cli.vta_26vs27) + '">' + cli.vta_26vs27 + '%</td>' +
+              '<td class="' + getSemaforoClass(cli.vta_26vs25) + '">' + cli.vta_26vs25 + '%</td>' +
+              '<td class="' + getSemaforoClass(cli.vta_26vs24) + '">' + cli.vta_26vs24 + '%</td>' +
+              '<td class="' + getSemaforoClass(cli.vta_26vs23) + '">' + cli.vta_26vs23 + '%</td>';
             tbody.appendChild(trP);
 
             cli.hijos.forEach(h => {
@@ -716,7 +771,10 @@
             crearThHTML('VTA 24', 'vta_24', true) +
             crearThHTML('VTA 23', 'vta_23', true) +
             crearThHTML('PPTO 2027', 'ppto_2027', true) +
-            '<th>VTA 26VS27</th><th>VTA 26VS25</th><th>VTA 26VS24</th><th>VTA 26VS23</th>';
+            crearThHTML('VTA 26VS27', 'vta_26vs27', true) +
+            crearThHTML('VTA 26VS25', 'vta_26vs25', true) +
+            crearThHTML('VTA 26VS24', 'vta_26vs24', true) +
+            crearThHTML('VTA 26VS23', 'vta_26vs23', true);
 
           trTot.innerHTML = '<td class="text-left" colspan="5">TOTAL DETALLE CLIENTES</td><td>$' + fmtN(tP26) + '</td><td>$' + fmtN(tV26) + '</td><td>$' + fmtN(tV25) + '</td><td>$' + fmtN(tV24) + '</td><td>$' + fmtN(tV23) + '</td><td id="tot-p27">$' + fmtN(tP27) + '</td>' +
             '<td class="' + getSemaforoClass(v27_tot) + '">' + v27_tot + '%</td>' +
