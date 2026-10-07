@@ -7,60 +7,60 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f7f9; color: #2d3748; padding: 12px; font-size: 11px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f7f9; color: #2d3748; padding: 10px; font-size: 10px; }
 
     /* HEADER & BRANDING */
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; background: #fff; padding: 8px 14px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .brand-title { font-size: 16px; font-weight: 800; color: #1a365d; display: flex; align-items: center; gap: 8px; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; background: #fff; padding: 6px 12px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .brand-title { font-size: 15px; font-weight: 800; color: #1a365d; display: flex; align-items: center; gap: 8px; }
     .brand-tag { background: #ebf8ff; color: #2b6cb0; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; border: 1px solid #bee3f8; }
 
     /* PESTAÑAS PRINCIPALES */
-    .tabs-nav { display: flex; gap: 6px; border-bottom: 2px solid #cbd5e0; margin-bottom: 10px; }
-    .tab-btn { padding: 8px 14px; font-weight: 700; border: none; background: #e2e8f0; color: #4a5568; border-radius: 6px 6px 0 0; cursor: pointer; transition: all 0.2s; font-size: 11px; }
+    .tabs-nav { display: flex; gap: 6px; border-bottom: 2px solid #cbd5e0; margin-bottom: 8px; }
+    .tab-btn { padding: 6px 12px; font-weight: 700; border: none; background: #e2e8f0; color: #4a5568; border-radius: 6px 6px 0 0; cursor: pointer; transition: all 0.2s; font-size: 10px; }
     .tab-btn.activo { background: #2b6cb0; color: white; }
 
     /* CONTROLES Y FILTROS */
-    .controls-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; background: #fff; padding: 8px 12px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: relative; }
-    .btn-group { display: flex; gap: 3px; background: #edf2f7; padding: 3px; border-radius: 5px; }
-    .btn-item { border: none; background: transparent; padding: 4px 8px; font-size: 10px; font-weight: 700; color: #4a5568; border-radius: 3px; cursor: pointer; }
+    .controls-bar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; background: #fff; padding: 6px 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: relative; }
+    .btn-group { display: flex; gap: 2px; background: #edf2f7; padding: 2px; border-radius: 4px; }
+    .btn-item { border: none; background: transparent; padding: 3px 6px; font-size: 10px; font-weight: 700; color: #4a5568; border-radius: 3px; cursor: pointer; }
     .btn-item.activo { background: #2b6cb0; color: white; }
     
-    .btn-action { background: #2f855a; color: white; border: none; padding: 5px 10px; font-size: 10px; font-weight: 700; border-radius: 4px; cursor: pointer; }
+    .btn-action { background: #2f855a; color: white; border: none; padding: 4px 8px; font-size: 10px; font-weight: 700; border-radius: 4px; cursor: pointer; }
     .btn-action:hover { background: #276749; }
-    .btn-secondary { background: #edf2f7; color: #2d3748; border: 1px solid #cbd5e0; padding: 5px 10px; font-size: 10px; font-weight: 700; border-radius: 4px; cursor: pointer; }
+    .btn-secondary { background: #edf2f7; color: #2d3748; border: 1px solid #cbd5e0; padding: 4px 8px; font-size: 10px; font-weight: 700; border-radius: 4px; cursor: pointer; }
 
-    .status-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 10px; background: #c6f6d5; color: #22543d; margin-left: auto; }
+    .status-badge { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 10px; background: #c6f6d5; color: #22543d; margin-left: auto; }
 
     /* LAYOUT PRINCIPAL */
-    .main-layout { display: flex; gap: 10px; width: 100%; align-items: flex-start; }
-    .table-card { flex: 1; background: #fff; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); max-height: 76vh; overflow: auto; position: relative; }
+    .main-layout { display: flex; gap: 8px; width: 100%; align-items: flex-start; }
+    .table-card { flex: 1; background: #fff; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); max-height: 78vh; overflow: auto; position: relative; }
     
-    /* TABLAS Y FILTROS TIPO EXCEL */
-    table { width: 100%; border-collapse: collapse; font-size: 10px; }
-    th { background: #2d3748; color: white; padding: 6px 4px; font-weight: 700; text-align: right; position: sticky; top: 0; z-index: 10; white-space: nowrap; user-select: none; }
+    /* TABLAS OPTIMIZADAS */
+    table { width: 100%; border-collapse: collapse; font-size: 9.5px; }
+    th { background: #2d3748; color: white; padding: 5px 3px; font-weight: 700; text-align: right; position: sticky; top: 0; z-index: 10; white-space: nowrap; user-select: none; font-size: 9.5px; }
     th.text-left { text-align: left; }
     
-    .th-container { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
-    .btn-filter-excel { background: transparent; border: none; color: #cbd5e0; cursor: pointer; font-size: 10px; padding: 1px 3px; border-radius: 2px; }
+    .th-container { display: flex; align-items: center; justify-content: space-between; gap: 2px; }
+    .btn-filter-excel { background: transparent; border: none; color: #cbd5e0; cursor: pointer; font-size: 9px; padding: 0 2px; border-radius: 2px; }
     .btn-filter-excel:hover, .btn-filter-excel.activo { color: #fff; background: rgba(255,255,255,0.25); }
 
     /* POPUP DE FILTRO ESTILO EXCEL */
-    .excel-filter-popup { display: none; position: absolute; background: #ffffff; color: #2d3748; border: 1px solid #cbd5e0; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); width: 250px; z-index: 500; font-size: 11px; padding: 8px; text-align: left; }
+    .excel-filter-popup { display: none; position: absolute; background: #ffffff; color: #2d3748; border: 1px solid #cbd5e0; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); width: 230px; z-index: 500; font-size: 10px; padding: 6px; text-align: left; }
     .excel-filter-popup.show { display: block; }
-    .filter-opt-item { padding: 6px 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-radius: 4px; font-weight: 500; }
+    .filter-opt-item { padding: 5px 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; border-radius: 4px; font-weight: 500; }
     .filter-opt-item:hover { background: #edf2f7; color: #2b6cb0; }
-    .filter-divider { height: 1px; background: #e2e8f0; margin: 6px 0; }
-    .filter-search-box { width: 100%; padding: 4px 8px; font-size: 11px; border: 1px solid #cbd5e0; border-radius: 4px; margin-bottom: 6px; }
-    .filter-checkbox-list { max-height: 140px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px; padding: 4px; background: #faf5ff; }
-    .filter-checkbox-item { display: flex; align-items: center; gap: 6px; padding: 3px 4px; font-size: 10px; cursor: pointer; }
+    .filter-divider { height: 1px; background: #e2e8f0; margin: 4px 0; }
+    .filter-search-box { width: 100%; padding: 3px 6px; font-size: 10px; border: 1px solid #cbd5e0; border-radius: 4px; margin-bottom: 4px; }
+    .filter-checkbox-list { max-height: 130px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px; padding: 3px; background: #faf5ff; }
+    .filter-checkbox-item { display: flex; align-items: center; gap: 4px; padding: 2px 3px; font-size: 9.5px; cursor: pointer; }
     .filter-checkbox-item:hover { background: #ebf8ff; }
-    .filter-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
+    .filter-actions { display: flex; justify-content: flex-end; gap: 4px; margin-top: 6px; }
 
-    td { padding: 5px 6px; border-bottom: 1px solid #edf2f7; text-align: right; white-space: nowrap; }
+    td { padding: 4px 3px; border-bottom: 1px solid #edf2f7; text-align: right; white-space: nowrap; }
     td.text-left { text-align: left; }
     tr:hover { background: #f8fafc; }
     
-    tr.row-totales { background: #ebf8ff; font-weight: bold; position: sticky; top: 23px; z-index: 9; border-bottom: 2px solid #3182ce; }
+    tr.row-totales { background: #ebf8ff; font-weight: bold; position: sticky; top: 21px; z-index: 9; border-bottom: 2px solid #3182ce; }
     tr.row-totales td { color: #1a365d; }
 
     tr.row-padre { background: #edf2f7; font-weight: bold; }
@@ -69,34 +69,36 @@
     tr.row-hijo td { color: #4a5568; }
 
     /* INPUTS Y BADGES */
-    input.inp-ppto { width: 90px; padding: 2px 4px; font-weight: 700; border: 1px solid #3182ce; border-radius: 3px; text-align: right; font-size: 10px; color: #1a202c; }
+    input.inp-ppto { width: 80px; padding: 2px 3px; font-weight: 700; border: 1px solid #3182ce; border-radius: 3px; text-align: right; font-size: 9.5px; color: #1a202c; }
     input.inp-ppto:focus { background: #ebf8ff; outline: 1px solid #2b6cb0; }
 
-    .badge-top { background: #c6f6d5; color: #22543d; font-size: 8px; padding: 1px 4px; border-radius: 3px; font-weight: 700; }
-    .badge-sec { background: #edf2f7; color: #718096; font-size: 8px; padding: 1px 4px; border-radius: 3px; }
+    .badge-top { background: #c6f6d5; color: #22543d; font-size: 8px; padding: 1px 3px; border-radius: 3px; font-weight: 700; }
+    .badge-sec { background: #edf2f7; color: #718096; font-size: 8px; padding: 1px 3px; border-radius: 3px; }
 
-    .btn-toggle { background: #3182ce; color: white; border: none; border-radius: 3px; font-size: 9px; padding: 1px 5px; cursor: pointer; font-weight: bold; margin-right: 4px; }
-    .indent { padding-left: 18px !important; }
+    .btn-toggle { background: #3182ce; color: white; border: none; border-radius: 3px; font-size: 8.5px; padding: 1px 4px; cursor: pointer; font-weight: bold; margin-right: 3px; }
+    .indent { padding-left: 14px !important; }
+
+    /* SEMAFORIZACIÓN: NEGATIVO ROJO, CERO AMARILLO, POSITIVO VERDE */
+    .sem-rojo { color: #e53e3e; font-weight: bold; }
+    .sem-amarillo { color: #d69e2e; font-weight: bold; }
+    .sem-verde { color: #2f855a; font-weight: bold; }
 
     /* PANEL LATERAL DE CUADRE */
-    .sidebar-cuadre { width: 280px; background: #fff; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); padding: 10px; max-height: 76vh; overflow-y: auto; }
-    .sidebar-cuadre h3 { font-size: 11px; color: #1a365d; margin-bottom: 6px; border-bottom: 2px solid #3182ce; padding-bottom: 3px; }
+    .sidebar-cuadre { width: 270px; background: #fff; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); padding: 8px; max-height: 78vh; overflow-y: auto; }
+    .sidebar-cuadre h3 { font-size: 10.5px; color: #1a365d; margin-bottom: 5px; border-bottom: 2px solid #3182ce; padding-bottom: 2px; }
 
-    .verde { color: #2f855a; font-weight: bold; }
-    .rojo { color: #e53e3e; font-weight: bold; }
-
-    .alerta-cuadre { display: inline-flex; align-items: center; padding: 1px 4px; border-radius: 3px; font-size: 9px; font-weight: bold; }
+    .alerta-cuadre { display: inline-flex; align-items: center; padding: 1px 3px; border-radius: 3px; font-size: 8.5px; font-weight: bold; }
     .alerta-cuadre.ok { background: #c6f6d5; color: #22543d; }
     .alerta-cuadre.exceso { background: #fed7d7; color: #9b2c2c; }
     .alerta-cuadre.falta { background: #feebc8; color: #744210; }
 
-    .dashboard-grid { display: none; gap: 12px; flex-wrap: wrap; width: 100%; }
-    .chart-box { background: #fff; padding: 12px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); flex: 1; min-width: 400px; }
+    .dashboard-grid { display: none; gap: 10px; flex-wrap: wrap; width: 100%; }
+    .chart-box { background: #fff; padding: 10px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); flex: 1; min-width: 380px; }
 
     /* DROPDOWN MENU */
-    .menu-dropdown { display: none; position: absolute; right: 12px; top: 36px; background: #fff; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 210px; z-index: 100; border: 1px solid #e2e8f0; }
+    .menu-dropdown { display: none; position: absolute; right: 10px; top: 32px; background: #fff; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 200px; z-index: 100; border: 1px solid #e2e8f0; }
     .menu-dropdown.show { display: block; }
-    .menu-item { padding: 8px 12px; font-size: 11px; cursor: pointer; color: #2d3748; }
+    .menu-item { padding: 6px 10px; font-size: 10px; cursor: pointer; color: #2d3748; }
     .menu-item:hover { background: #ebf8ff; color: #2b6cb0; }
   </style>
 </head>
@@ -113,8 +115,8 @@
 
   <!-- NAVEGACIÓN -->
   <div class="tabs-nav">
-    <button id="tab-macro" class="tab-btn activo" onclick="mostrarPestana('macro')">📦 1. Macro por Familia (Pareto 80/20 por VTA + PROY 2026)</button>
-    <button id="tab-micro" class="tab-btn" onclick="mostrarPestana('micro')">🏢 2. Empresa / Cliente (Pareto 80/20 por VTA + PROY 2026) + Cuadre</button>
+    <button id="tab-macro" class="tab-btn activo" onclick="mostrarPestana('macro')">📦 1. Macro por Familia (Pareto 80/20 por VTA + PROY 26)</button>
+    <button id="tab-micro" class="tab-btn" onclick="mostrarPestana('micro')">🏢 2. Empresa / Cliente (Pareto 80/20 por VTA + PROY 26) + Cuadre</button>
     <button id="tab-charts" class="tab-btn" onclick="mostrarPestana('charts')">📈 3. Gráficos y Dashboard</button>
   </div>
 
@@ -183,7 +185,7 @@
           <tr id="tr-totales" class="row-totales"></tr>
         </thead>
         <tbody id="tb-body">
-          <tr><td colspan="12" style="text-align:center; padding:20px;">Cargando datos...</td></tr>
+          <tr><td colspan="15" style="text-align:center; padding:20px;">Cargando datos...</td></tr>
         </tbody>
       </table>
     </div>
@@ -210,11 +212,11 @@
   <div id="sec-charts" class="dashboard-grid">
     <div class="chart-box">
       <h3>🏆 Top 10 Clientes</h3>
-      <canvas id="chartClientes" height="200"></canvas>
+      <canvas id="chartClientes" height="180"></canvas>
     </div>
     <div class="chart-box">
       <h3>📦 Presupuesto 2027 por Familia</h3>
-      <canvas id="chartFamilias" height="200"></canvas>
+      <canvas id="chartFamilias" height="180"></canvas>
     </div>
   </div>
 
@@ -265,7 +267,7 @@
         })
         .catch(e => {
           if (datosOriginales.length === 0) {
-            document.getElementById('tb-body').innerHTML = '<tr><td colspan="12" style="text-align:center; padding:20px;">Utilice el botón <strong>📁 Cargar CSV</strong> para cargar los datos.</td></tr>';
+            document.getElementById('tb-body').innerHTML = '<tr><td colspan="15" style="text-align:center; padding:20px;">Utilice el botón <strong>📁 Cargar CSV</strong> para cargar los datos.</td></tr>';
           }
         });
     }
@@ -346,7 +348,23 @@
       return isNaN(n) ? 0 : n;
     }
     function fmtN(n) { return !n || isNaN(n) ? "0" : Math.round(n).toLocaleString('en-US'); }
-    function calcV(vta, base) { return !base ? (vta > 0 ? 100 : 0) : (((vta / base) - 1) * 100).toFixed(0); }
+
+    // FÓRMULA DE VARIACIÓN: ((VTA + PROY 26 / BASE) - 1) * 100
+    function calcVarPct(vta26, base) {
+      const v = Number(vta26) || 0;
+      const b = Number(base) || 0;
+      if (b === 0) return v > 0 ? 100 : 0;
+      return (((v / b) - 1) * 100).toFixed(0);
+    }
+
+    // REGLA DE SEMAFORIZACIÓN: NEGATIVO ROJO (< 0%), CERO AMARILLO (= 0%), POSITIVO VERDE (>= 1%)
+    function getSemaforoClass(valPct) {
+      const n = Number(valPct);
+      if (n < 0) return 'sem-rojo';
+      if (n === 0) return 'sem-amarillo';
+      return 'sem-verde';
+    }
+
     function setEstado(m, c) { const e = document.getElementById('status-indicator'); if (e) { e.innerText = m; e.className = c; } }
 
     function guardarLocalmente() {
@@ -413,7 +431,7 @@
 
       const rect = event.target.getBoundingClientRect();
       popup.style.top = (rect.bottom + window.scrollY + 4) + 'px';
-      popup.style.left = Math.min(rect.left + window.scrollX, window.innerWidth - 270) + 'px';
+      popup.style.left = Math.min(rect.left + window.scrollX, window.innerWidth - 250) + 'px';
       popup.classList.add('show');
     }
 
@@ -469,7 +487,7 @@
       });
     }
 
-    /* PARETO 80/20 Y ORDENAMIENTO BASADO EN VTA + PROY 2026 */
+    /* PARETO 80/20 Y ORDENAMIENTO BASADO EN VTA + PROY 26 */
     function getMacroData() {
       const map = {};
       let baseP = datosOriginales;
@@ -523,7 +541,7 @@
       document.getElementById('txt-filas').innerText = "Mostrando " + data.length + " registros de " + datosOriginales.length + " totales";
 
       if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:15px;">No hay datos para mostrar. Presione <strong>🧹 Limpiar Filtros Excel</strong>.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="15" style="text-align:center; padding:15px;">No hay datos para mostrar. Presione <strong>🧹 Limpiar Filtros Excel</strong>.</td></tr>';
         trTot.innerHTML = '';
         return;
       }
@@ -534,12 +552,12 @@
           crearThHTML('% Part. VTA 26', 'pctPart', true) +
           crearThHTML('% Acum (80/20)', 'pctAcum', true) +
           crearThHTML('PPTO 2026', 'ppto_2026', true) +
-          crearThHTML('VTA + PROY', 'vta_proy_26', true) +
+          crearThHTML('VTA + PROY 26', 'vta_proy_26', true) +
           crearThHTML('VTA 25', 'vta_25', true) +
           crearThHTML('VTA 24', 'vta_24', true) +
           crearThHTML('VTA 23', 'vta_23', true) +
           crearThHTML('PPTO 2027 MACRO', 'ppto_2027_macro', true) +
-          '<th>Var %</th>';
+          '<th>VTA 26VS27</th><th>VTA 26VS25</th><th>VTA 26VS24</th><th>VTA 26VS23</th>';
 
         const tP26 = data.reduce((s, d) => s + d.ppto_2026, 0);
         const tV26 = data.reduce((s, d) => s + d.vta_proy_26, 0);
@@ -548,13 +566,26 @@
         const tV23 = data.reduce((s, d) => s + d.vta_23, 0);
         const tP27 = data.reduce((s, d) => s + d.ppto_2027_macro, 0);
 
-        trTot.innerHTML = '<td class="text-left" colspan="2">TOTAL META MACRO</td><td>100%</td><td>100%</td><td>$' + fmtN(tP26) + '</td><td>$' + fmtN(tV26) + '</td><td>$' + fmtN(tV25) + '</td><td>$' + fmtN(tV24) + '</td><td>$' + fmtN(tV23) + '</td><td id="tot-p27">$' + fmtN(tP27) + '</td><td>' + calcV(tV26, tP27) + '%</td>';
+        const v27_tot = calcVarPct(tV26, tP27);
+        const v25_tot = calcVarPct(tV26, tV25);
+        const v24_tot = calcVarPct(tV26, tV24);
+        const v23_tot = calcVarPct(tV26, tV23);
+
+        trTot.innerHTML = '<td class="text-left" colspan="2">TOTAL META MACRO</td><td>100%</td><td>100%</td><td>$' + fmtN(tP26) + '</td><td>$' + fmtN(tV26) + '</td><td>$' + fmtN(tV25) + '</td><td>$' + fmtN(tV24) + '</td><td>$' + fmtN(tV23) + '</td><td id="tot-p27">$' + fmtN(tP27) + '</td>' +
+          '<td class="' + getSemaforoClass(v27_tot) + '">' + v27_tot + '%</td>' +
+          '<td class="' + getSemaforoClass(v25_tot) + '">' + v25_tot + '%</td>' +
+          '<td class="' + getSemaforoClass(v24_tot) + '">' + v24_tot + '%</td>' +
+          '<td class="' + getSemaforoClass(v23_tot) + '">' + v23_tot + '%</td>';
 
         tbody.innerHTML = '';
         data.forEach(r => {
           const isTop = r.pctAcum <= 80 || (r.pctAcum - r.pctPart) < 80;
           const badge = isTop ? '<span class="badge-top">Top 80%</span>' : '<span class="badge-sec">Secundario</span>';
-          const vVar = calcV(r.vta_proy_26, r.ppto_2027_macro);
+
+          const v27 = calcVarPct(r.vta_proy_26, r.ppto_2027_macro);
+          const v25 = calcVarPct(r.vta_proy_26, r.vta_25);
+          const v24 = calcVarPct(r.vta_proy_26, r.vta_24);
+          const v23 = calcVarPct(r.vta_proy_26, r.vta_23);
 
           const tr = document.createElement('tr');
           tr.innerHTML = '<td class="text-left">' + r.id_empresa + '</td>' +
@@ -563,7 +594,10 @@
             '<td>$' + fmtN(r.ppto_2026) + '</td><td>$' + fmtN(r.vta_proy_26) + '</td>' +
             '<td>$' + fmtN(r.vta_25) + '</td><td>$' + fmtN(r.vta_24) + '</td><td>$' + fmtN(r.vta_23) + '</td>' +
             '<td style="background:#ebf8ff;"><input type="text" class="inp-ppto" value="' + fmtN(r.ppto_2027_macro) + '" onfocus="focusZero(this)" oninput="updMetaMacro(this, \'' + r.familias_agrupadas + '\')" onblur="blurFmt(this)"></td>' +
-            '<td class="' + (vVar >= 0 ? 'verde' : 'rojo') + '">' + vVar + '%</td>';
+            '<td class="' + getSemaforoClass(v27) + '">' + v27 + '%</td>' +
+            '<td class="' + getSemaforoClass(v25) + '">' + v25 + '%</td>' +
+            '<td class="' + getSemaforoClass(v24) + '">' + v24 + '%</td>' +
+            '<td class="' + getSemaforoClass(v23) + '">' + v23 + '%</td>';
           tbody.appendChild(tr);
         });
 
@@ -575,20 +609,29 @@
         const tV23 = data.reduce((s, d) => s + d.vta_23, 0);
         const tP27 = datosOriginales.reduce((s, d) => s + d.ppto_2027, 0);
 
+        const v27_tot = calcVarPct(tV26, tP27);
+        const v25_tot = calcVarPct(tV26, tV25);
+        const v24_tot = calcVarPct(tV26, tV24);
+        const v23_tot = calcVarPct(tV26, tV23);
+
         if (modoVistaMicro === 'cliente') {
           thead.innerHTML = crearThHTML('Empresa (País)', 'id_empresa', false) +
             crearThHTML('Cliente (razon_social_sec)', 'razon_social_sec', false) +
             crearThHTML('% Part. VTA 26', 'pctPart', true) +
             crearThHTML('% Acum (80/20)', 'pctAcum', true) +
             crearThHTML('PPTO 2026', 'ppto_2026', true) +
-            crearThHTML('VTA + PROY', 'vta_proy_26', true) +
+            crearThHTML('VTA + PROY 26', 'vta_proy_26', true) +
             crearThHTML('VTA 25', 'vta_25', true) +
             crearThHTML('VTA 24', 'vta_24', true) +
             crearThHTML('VTA 23', 'vta_23', true) +
             crearThHTML('PPTO 2027 CLIENTE', 'ppto_2027', true) +
-            '<th>Var %</th>';
+            '<th>VTA 26VS27</th><th>VTA 26VS25</th><th>VTA 26VS24</th><th>VTA 26VS23</th>';
 
-          trTot.innerHTML = '<td class="text-left" colspan="2">TOTAL EMPRESA / CLIENTES</td><td>100%</td><td>100%</td><td>$' + fmtN(tP26) + '</td><td>$' + fmtN(tV26) + '</td><td>$' + fmtN(tV25) + '</td><td>$' + fmtN(tV24) + '</td><td>$' + fmtN(tV23) + '</td><td id="tot-p27">$' + fmtN(tP27) + '</td><td>' + calcV(tV26, tP27) + '%</td>';
+          trTot.innerHTML = '<td class="text-left" colspan="2">TOTAL EMPRESA / CLIENTES</td><td>100%</td><td>100%</td><td>$' + fmtN(tP26) + '</td><td>$' + fmtN(tV26) + '</td><td>$' + fmtN(tV25) + '</td><td>$' + fmtN(tV24) + '</td><td>$' + fmtN(tV23) + '</td><td id="tot-p27">$' + fmtN(tP27) + '</td>' +
+            '<td class="' + getSemaforoClass(v27_tot) + '">' + v27_tot + '%</td>' +
+            '<td class="' + getSemaforoClass(v25_tot) + '">' + v25_tot + '%</td>' +
+            '<td class="' + getSemaforoClass(v24_tot) + '">' + v24_tot + '%</td>' +
+            '<td class="' + getSemaforoClass(v23_tot) + '">' + v23_tot + '%</td>';
 
           const mapC = {};
           data.forEach(item => {
@@ -619,7 +662,11 @@
             const badge = isTop ? '<span class="badge-top">Top 80%</span>' : '<span class="badge-sec">Secundario</span>';
             const open = clientesExpandidos[cli.nombre] === true;
             const icon = open ? '▼' : '▶';
-            const vVar = calcV(cli.vta_proy_26, cli.ppto_2027);
+
+            const v27 = calcVarPct(cli.vta_proy_26, cli.ppto_2027);
+            const v25 = calcVarPct(cli.vta_proy_26, cli.vta_25);
+            const v24 = calcVarPct(cli.vta_proy_26, cli.vta_24);
+            const v23 = calcVarPct(cli.vta_proy_26, cli.vta_23);
 
             const trP = document.createElement('tr');
             trP.className = 'row-padre';
@@ -629,20 +676,30 @@
               '<td>$' + fmtN(cli.ppto_2026) + '</td><td>$' + fmtN(cli.vta_proy_26) + '</td>' +
               '<td>$' + fmtN(cli.vta_25) + '</td><td>$' + fmtN(cli.vta_24) + '</td><td>$' + fmtN(cli.vta_23) + '</td>' +
               '<td style="background:#e2e8f0;"><input type="text" class="inp-ppto" value="' + fmtN(cli.ppto_2027) + '" onfocus="focusZero(this)" oninput="updConsolidadoCli(this, \'' + cli.nombre.replace(/'/g, "\\'") + '\')" onblur="blurFmt(this)"></td>' +
-              '<td class="' + (vVar >= 0 ? 'verde' : 'rojo') + '">' + vVar + '%</td>';
+              '<td class="' + getSemaforoClass(v27) + '">' + v27 + '%</td>' +
+              '<td class="' + getSemaforoClass(v25) + '">' + v25 + '%</td>' +
+              '<td class="' + getSemaforoClass(v24) + '">' + v24 + '%</td>' +
+              '<td class="' + getSemaforoClass(v23) + '">' + v23 + '%</td>';
             tbody.appendChild(trP);
 
             cli.hijos.forEach(h => {
               const trH = document.createElement('tr');
               trH.className = 'row-hijo' + (open ? ' open' : '');
-              const hVar = calcV(h.vta_proy_26, h.ppto_2027);
+
+              const hv27 = calcVarPct(h.vta_proy_26, h.ppto_2027);
+              const hv25 = calcVarPct(h.vta_proy_26, h.vta_25);
+              const hv24 = calcVarPct(h.vta_proy_26, h.vta_24);
+              const hv23 = calcVarPct(h.vta_proy_26, h.vta_23);
 
               trH.innerHTML = '<td class="text-left indent">↳ ' + (h.gerencia || 'GENERAL') + '</td>' +
                 '<td class="text-left" colspan="3">↳ <strong>' + h.familias_agrupadas + '</strong> (' + h.nombre_familia + ')</td>' +
                 '<td>$' + fmtN(h.ppto_2026) + '</td><td>$' + fmtN(h.vta_proy_26) + '</td>' +
                 '<td>$' + fmtN(h.vta_25) + '</td><td>$' + fmtN(h.vta_24) + '</td><td>$' + fmtN(h.vta_23) + '</td>' +
                 '<td style="background:#ebf8ff;"><input type="text" class="inp-ppto" value="' + fmtN(h.ppto_2027) + '" onfocus="focusZero(this)" oninput="updItemPpto(this, ' + h.id + ')" onblur="blurFmt(this)"></td>' +
-                '<td class="' + (hVar >= 0 ? 'verde' : 'rojo') + '">' + hVar + '%</td>';
+                '<td class="' + getSemaforoClass(hv27) + '">' + hv27 + '%</td>' +
+                '<td class="' + getSemaforoClass(hv25) + '">' + hv25 + '%</td>' +
+                '<td class="' + getSemaforoClass(hv24) + '">' + hv24 + '%</td>' +
+                '<td class="' + getSemaforoClass(hv23) + '">' + hv23 + '%</td>';
               tbody.appendChild(trH);
             });
           });
@@ -654,18 +711,26 @@
             crearThHTML('Familia', 'familias_agrupadas', false) +
             crearThHTML('Nombre Familia', 'nombre_familia', false) +
             crearThHTML('PPTO 2026', 'ppto_2026', true) +
-            crearThHTML('VTA + PROY', 'vta_proy_26', true) +
+            crearThHTML('VTA + PROY 26', 'vta_proy_26', true) +
             crearThHTML('VTA 25', 'vta_25', true) +
             crearThHTML('VTA 24', 'vta_24', true) +
             crearThHTML('VTA 23', 'vta_23', true) +
             crearThHTML('PPTO 2027', 'ppto_2027', true) +
-            '<th>Var %</th>';
+            '<th>VTA 26VS27</th><th>VTA 26VS25</th><th>VTA 26VS24</th><th>VTA 26VS23</th>';
 
-          trTot.innerHTML = '<td class="text-left" colspan="5">TOTAL DETALLE CLIENTES</td><td>$' + fmtN(tP26) + '</td><td>$' + fmtN(tV26) + '</td><td>$' + fmtN(tV25) + '</td><td>$' + fmtN(tV24) + '</td><td>$' + fmtN(tV23) + '</td><td id="tot-p27">$' + fmtN(tP27) + '</td><td>' + calcV(tV26, tP27) + '%</td>';
+          trTot.innerHTML = '<td class="text-left" colspan="5">TOTAL DETALLE CLIENTES</td><td>$' + fmtN(tP26) + '</td><td>$' + fmtN(tV26) + '</td><td>$' + fmtN(tV25) + '</td><td>$' + fmtN(tV24) + '</td><td>$' + fmtN(tV23) + '</td><td id="tot-p27">$' + fmtN(tP27) + '</td>' +
+            '<td class="' + getSemaforoClass(v27_tot) + '">' + v27_tot + '%</td>' +
+            '<td class="' + getSemaforoClass(v25_tot) + '">' + v25_tot + '%</td>' +
+            '<td class="' + getSemaforoClass(v24_tot) + '">' + v24_tot + '%</td>' +
+            '<td class="' + getSemaforoClass(v23_tot) + '">' + v23_tot + '%</td>';
 
           tbody.innerHTML = '';
           data.forEach(r => {
-            const vVar = calcV(r.vta_proy_26, r.ppto_2027);
+            const v27 = calcVarPct(r.vta_proy_26, r.ppto_2027);
+            const v25 = calcVarPct(r.vta_proy_26, r.vta_25);
+            const v24 = calcVarPct(r.vta_proy_26, r.vta_24);
+            const v23 = calcVarPct(r.vta_proy_26, r.vta_23);
+
             const tr = document.createElement('tr');
             tr.innerHTML = '<td class="text-left">' + r.id_empresa + '</td>' +
               '<td class="text-left">' + r.gerencia + '</td>' +
@@ -675,7 +740,10 @@
               '<td>$' + fmtN(r.ppto_2026) + '</td><td>$' + fmtN(r.vta_proy_26) + '</td>' +
               '<td>$' + fmtN(r.vta_25) + '</td><td>$' + fmtN(r.vta_24) + '</td><td>$' + fmtN(r.vta_23) + '</td>' +
               '<td style="background:#ebf8ff;"><input type="text" class="inp-ppto" value="' + fmtN(r.ppto_2027) + '" onfocus="focusZero(this)" oninput="updItemPpto(this, ' + r.id + ')" onblur="blurFmt(this)"></td>' +
-              '<td class="' + (vVar >= 0 ? 'verde' : 'rojo') + '">' + vVar + '%</td>';
+              '<td class="' + getSemaforoClass(v27) + '">' + v27 + '%</td>' +
+              '<td class="' + getSemaforoClass(v25) + '">' + v25 + '%</td>' +
+              '<td class="' + getSemaforoClass(v24) + '">' + v24 + '%</td>' +
+              '<td class="' + getSemaforoClass(v23) + '">' + v23 + '%</td>';
             tbody.appendChild(tr);
           });
         }
