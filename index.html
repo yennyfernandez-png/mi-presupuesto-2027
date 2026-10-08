@@ -27,6 +27,8 @@
     
     .btn-action { background: #2f855a; color: white; border: none; padding: 4px 8px; font-size: 10px; font-weight: 700; border-radius: 4px; cursor: pointer; }
     .btn-action:hover { background: #276749; }
+    .btn-add { background: #805ad5; color: white; border: none; padding: 4px 8px; font-size: 10px; font-weight: 700; border-radius: 4px; cursor: pointer; }
+    .btn-add:hover { background: #6b46c1; }
     .btn-secondary { background: #edf2f7; color: #2d3748; border: 1px solid #cbd5e0; padding: 4px 8px; font-size: 10px; font-weight: 700; border-radius: 4px; cursor: pointer; }
 
     .status-badge { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 10px; background: #c6f6d5; color: #22543d; margin-left: auto; }
@@ -100,6 +102,17 @@
     .menu-dropdown.show { display: block; }
     .menu-item { padding: 6px 10px; font-size: 10px; cursor: pointer; color: #2d3748; }
     .menu-item:hover { background: #ebf8ff; color: #2b6cb0; }
+
+    /* MODAL DE AGREGAR PAÍS / GERENCIA */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 999; justify-content: center; align-items: center; }
+    .modal-overlay.show { display: flex; }
+    .modal-card { background: #ffffff; width: 380px; border-radius: 8px; padding: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: left; }
+    .modal-card h2 { font-size: 13px; color: #1a365d; margin-bottom: 12px; border-bottom: 2px solid #3182ce; padding-bottom: 4px; }
+    .modal-form-group { margin-bottom: 10px; }
+    .modal-form-group label { display: block; font-size: 10px; font-weight: 700; color: #4a5568; margin-bottom: 3px; }
+    .modal-form-group input, .modal-form-group select { width: 100%; padding: 5px 8px; font-size: 10px; border: 1px solid #cbd5e0; border-radius: 4px; outline: none; }
+    .modal-form-group input:focus, .modal-form-group select:focus { border-color: #3182ce; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 14px; }
   </style>
 </head>
 <body>
@@ -135,6 +148,7 @@
       <button id="btn-v-det" class="btn-item" onclick="cambiarVistaMicro('detallado')">📋 Ver Detallado Abierto</button>
     </div>
 
+    <button class="btn-add" onclick="abrirModalNuevoRegistro()">➕ Agregar País / Gerencia</button>
     <button class="btn-secondary" onclick="limpiarTodosFiltrosExcel()">🧹 Limpiar Filtros Excel</button>
 
     <label class="btn-secondary">
@@ -151,6 +165,51 @@
       <div id="dropdown-opts" class="menu-dropdown">
         <div class="menu-item" onclick="copiarAlPortapapeles()">📋 Copiar al portapapeles</div>
         <div class="menu-item" onclick="descargarCSV()">📄 Exportar datos (CSV)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE AGREGAR NUEVO PAÍS / GERENCIA -->
+  <div id="modal-agregar" class="modal-overlay">
+    <div class="modal-card">
+      <h2>➕ Agregar Nuevo País / Gerencia</h2>
+      <div class="modal-form-group">
+        <label>Empresa / País:</label>
+        <select id="modal-pais">
+          <option value="PRECISION CHILE">PRECISION CHILE</option>
+          <option value="PRECISION PERU">PRECISION PERU</option>
+          <option value="PRECISION BOLIVIA">PRECISION BOLIVIA</option>
+          <option value="PRECISION ECUADOR">PRECISION ECUADOR</option>
+          <option value="OTRO">-- Otro País --</option>
+        </select>
+      </div>
+      <div id="group-pais-nuevo" class="modal-form-group" style="display:none;">
+        <label>Nombre del Nuevo País:</label>
+        <input type="text" id="modal-pais-nuevo" placeholder="Ej. PRECISION COLOMBIA">
+      </div>
+      <div class="modal-form-group">
+        <label>Gerencia (Nombre):</label>
+        <input type="text" id="modal-gerencia" placeholder="Ej. SUR, EXPRESS, OIL & GAS, NORTE, MINERÍA">
+      </div>
+      <div class="modal-form-group">
+        <label>Familia Agrupada:</label>
+        <input type="text" id="modal-familia" placeholder="Ej. SERVICIOS ROCKWELL, AUTOMATIZACION">
+      </div>
+      <div class="modal-form-group">
+        <label>Cliente (`razon_social_sec`):</label>
+        <input type="text" id="modal-cliente" placeholder="Ej. CLIENTE EJEMPLO S.A.">
+      </div>
+      <div class="modal-form-group">
+        <label>VTA + PROY 2026 ($):</label>
+        <input type="number" id="modal-vta26" placeholder="0" value="0">
+      </div>
+      <div class="modal-form-group">
+        <label>Presupuesto PPTO 2027 ($):</label>
+        <input type="number" id="modal-ppto27" placeholder="0" value="0">
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="cerrarModalNuevoRegistro()">Cancelar</button>
+        <button class="btn-action" onclick="guardarNuevoRegistroModal()">Guardar Registro</button>
       </div>
     </div>
   </div>
@@ -273,6 +332,10 @@
             document.getElementById('tb-body').innerHTML = '<tr><td colspan="15" style="text-align:center; padding:20px;">Utilice el botón <strong>📁 Cargar CSV</strong> para cargar los datos.</td></tr>';
           }
         });
+
+      document.getElementById('modal-pais').addEventListener('change', function() {
+        document.getElementById('group-pais-nuevo').style.display = (this.value === 'OTRO') ? 'block' : 'none';
+      });
     }
 
     function cargarCSVLocal(inp) {
@@ -375,6 +438,46 @@
       localStorage.setItem('presupuesto_metas_macro', JSON.stringify(metasMacroFamilia));
       localStorage.setItem('presupuesto_cache_datos', JSON.stringify(datosOriginales));
       alert("✅ ¡Presupuesto guardado con éxito!");
+    }
+
+    function abrirModalNuevoRegistro() {
+      document.getElementById('modal-agregar').classList.add('show');
+    }
+
+    function cerrarModalNuevoRegistro() {
+      document.getElementById('modal-agregar').classList.remove('show');
+    }
+
+    function guardarNuevoRegistroModal() {
+      const pSel = document.getElementById('modal-pais').value;
+      const pOtro = document.getElementById('modal-pais-nuevo').value.trim();
+      const paisFinal = (pSel === 'OTRO') ? (pOtro || 'NUEVO PAIS') : pSel;
+
+      const gerencia = document.getElementById('modal-gerencia').value.trim() || 'GENERAL';
+      const familia = document.getElementById('modal-familia').value.trim() || 'GENERAL';
+      const cliente = document.getElementById('modal-cliente').value.trim() || 'CLIENTE NUEVO';
+      const v26 = cleanN(document.getElementById('modal-vta26').value);
+      const p27 = cleanN(document.getElementById('modal-ppto27').value);
+
+      const nuevoId = datosOriginales.length > 0 ? Math.max(...datosOriginales.map(d => d.id)) + 1 : 1;
+
+      datosOriginales.push({
+        id: nuevoId,
+        id_empresa: paisFinal,
+        gerencia: gerencia,
+        razon_social_sec: cliente,
+        familias_agrupadas: familia,
+        nombre_familia: familia,
+        ppto_2026: 0,
+        vta_proy_26: v26,
+        vta_23: 0, vta_24: 0, vta_25: 0,
+        ppto_2027: p27
+      });
+
+      localStorage.setItem('presupuesto_cache_datos', JSON.stringify(datosOriginales));
+      cerrarModalNuevoRegistro();
+      render();
+      alert("✅ ¡Nuevo registro agregado correctamente!");
     }
 
     function filtrarPais(p, btn) {
@@ -525,7 +628,6 @@
       return listC;
     }
 
-    /* PESTAÑA 1: FAMILIA MACRO CON GERENCIAS DESPLEGABLES DENTRO */
     function getMacroData() {
       const mapF = {};
       let baseP = datosOriginales;
@@ -534,6 +636,7 @@
       baseP.forEach(item => {
         const fam = item.familias_agrupadas || 'SIN CLASIFICAR';
         const ger = item.gerencia || 'GENERAL';
+        const emp = item.id_empresa;
         const keyMeta = (paisSeleccionado !== 'TODOS') ? `${paisSeleccionado}_${fam}` : fam;
 
         if (!mapF[fam]) {
@@ -552,18 +655,20 @@
         mapF[fam].vta_24 += Number(item.vta_24 || 0);
         mapF[fam].vta_23 += Number(item.vta_23 || 0);
 
-        if (!mapF[fam].gerenciasMap[ger]) {
-          mapF[fam].gerenciasMap[ger] = {
+        const gerKey = `${emp}_${ger}`;
+        if (!mapF[fam].gerenciasMap[gerKey]) {
+          mapF[fam].gerenciasMap[gerKey] = {
+            id_empresa: emp,
             gerencia: ger,
             ppto_2026: 0, vta_proy_26: 0, vta_25: 0, vta_24: 0, vta_23: 0, ppto_2027: 0
           };
         }
-        mapF[fam].gerenciasMap[ger].ppto_2026 += Number(item.ppto_2026 || 0);
-        mapF[fam].gerenciasMap[ger].vta_proy_26 += Number(item.vta_proy_26 || 0);
-        mapF[fam].gerenciasMap[ger].vta_25 += Number(item.vta_25 || 0);
-        mapF[fam].gerenciasMap[ger].vta_24 += Number(item.vta_24 || 0);
-        mapF[fam].gerenciasMap[ger].vta_23 += Number(item.vta_23 || 0);
-        mapF[fam].gerenciasMap[ger].ppto_2027 += Number(item.ppto_2027 || 0);
+        mapF[fam].gerenciasMap[gerKey].ppto_2026 += Number(item.ppto_2026 || 0);
+        mapF[fam].gerenciasMap[gerKey].vta_proy_26 += Number(item.vta_proy_26 || 0);
+        mapF[fam].gerenciasMap[gerKey].vta_25 += Number(item.vta_25 || 0);
+        mapF[fam].gerenciasMap[gerKey].vta_24 += Number(item.vta_24 || 0);
+        mapF[fam].gerenciasMap[gerKey].vta_23 += Number(item.vta_23 || 0);
+        mapF[fam].gerenciasMap[gerKey].ppto_2027 += Number(item.ppto_2027 || 0);
       });
 
       const totVta26 = baseP.reduce((s, d) => s + (d.vta_proy_26 || 0), 0);
@@ -702,7 +807,6 @@
             '<td class="' + getSemaforoClass(r.vta_26vs23) + '">' + r.vta_26vs23 + '%</td>';
           tbody.appendChild(trP);
 
-          // FILAS HIJAS POR GERENCIA DENTRO DE LA FAMILIA
           if (r.hijos) {
             r.hijos.forEach(h => {
               const trH = document.createElement('tr');
@@ -713,7 +817,7 @@
               const hv24 = calcVarPct(h.vta_proy_26, h.vta_24);
               const hv23 = calcVarPct(h.vta_proy_26, h.vta_23);
 
-              trH.innerHTML = '<td class="text-left indent">↳ ' + r.id_empresa + '</td>' +
+              trH.innerHTML = '<td class="text-left indent">↳ ' + h.id_empresa + '</td>' +
                 '<td class="text-left indent" colspan="3">↳ Gerencia: <strong>' + h.gerencia + '</strong></td>' +
                 '<td>$' + fmtN(h.ppto_2026) + '</td><td>$' + fmtN(h.vta_proy_26) + '</td>' +
                 '<td>$' + fmtN(h.vta_25) + '</td><td>$' + fmtN(h.vta_24) + '</td><td>$' + fmtN(h.vta_23) + '</td>' +
@@ -852,6 +956,44 @@
           });
         }
         renderCuadre();
+      }
+
+      // VINCULAR EVENTO DE PEGADO MULTI-FILA DESDE EXCEL
+      conectarEventoPegadoExcel();
+    }
+
+    /* MÓDULO PARA PEGAR MÚLTIPLES FILAS DESDE EXCEL DE FORMA VERTICAL */
+    function conectarEventoPegadoExcel() {
+      const inputs = document.querySelectorAll('input.inp-ppto');
+      inputs.forEach(inp => {
+        inp.removeEventListener('paste', manejarPegadoMultiFila);
+        inp.addEventListener('paste', manejarPegadoMultiFila);
+      });
+    }
+
+    function manejarPegadoMultiFila(e) {
+      const clipboardData = e.clipboardData || window.clipboardData;
+      const pastedData = clipboardData.getData('Text');
+
+      if (!pastedData) return;
+
+      // SI CONTIENE SALTICOS DE LÍNEA (PEGASTE VARIAS CELDAS DE EXCEL)
+      if (pastedData.includes('\n') || pastedData.includes('\r')) {
+        e.preventDefault();
+        const lineas = pastedData.split(/\r\n|\n/).map(l => l.trim()).filter(l => l.length > 0);
+
+        const allInputs = Array.from(document.querySelectorAll('input.inp-ppto:not([readonly])'));
+        const indexActual = allInputs.indexOf(e.target);
+
+        if (indexActual !== -1) {
+          lineas.forEach((valStr, offset) => {
+            const targetInp = allInputs[indexActual + offset];
+            if (targetInp) {
+              targetInp.value = fmtN(cleanN(valStr));
+              targetInp.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          });
+        }
       }
     }
 
