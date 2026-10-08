@@ -35,27 +35,26 @@
     .main-layout { display: flex; gap: 8px; width: 100%; align-items: flex-start; }
     .table-card { flex: 1; background: #fff; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); max-height: 78vh; overflow: auto; position: relative; }
     
-    /* TABLAS Y ENCABEZADOS DE FILTRO */
+    /* TABLAS OPTIMIZADAS */
     table { width: 100%; border-collapse: collapse; font-size: 9.5px; }
     th { background: #2d3748; color: white; padding: 5px 3px; font-weight: 700; text-align: right; position: sticky; top: 0; z-index: 10; white-space: nowrap; user-select: none; font-size: 9.5px; }
     th.text-left { text-align: left; }
     
-    .th-container { display: flex; align-items: center; justify-content: space-between; gap: 4px; width: 100%; }
-    .btn-filter-excel { background: transparent; border: none; color: #a0aec0; cursor: pointer; font-size: 9px; padding: 1px 3px; border-radius: 2px; }
-    .btn-filter-excel:hover, .btn-filter-excel.activo { color: #fff; background: rgba(255,255,255,0.3); font-weight: bold; }
+    .th-container { display: flex; align-items: center; justify-content: space-between; gap: 2px; }
+    .btn-filter-excel { background: transparent; border: none; color: #cbd5e0; cursor: pointer; font-size: 9px; padding: 0 2px; border-radius: 2px; }
+    .btn-filter-excel:hover, .btn-filter-excel.activo { color: #fff; background: rgba(255,255,255,0.25); }
 
     /* POPUP DE FILTRO ESTILO EXCEL */
-    .excel-filter-popup { display: none; position: absolute; background: #ffffff; color: #2d3748; border: 1px solid #cbd5e0; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); width: 240px; z-index: 500; font-size: 10px; padding: 8px; text-align: left; }
+    .excel-filter-popup { display: none; position: absolute; background: #ffffff; color: #2d3748; border: 1px solid #cbd5e0; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); width: 230px; z-index: 500; font-size: 10px; padding: 6px; text-align: left; }
     .excel-filter-popup.show { display: block; }
-    .filter-opt-item { padding: 5px 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; border-radius: 4px; font-weight: 600; color: #2d3748; }
-    .filter-opt-item:hover { background: #ebf8ff; color: #2b6cb0; }
+    .filter-opt-item { padding: 5px 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; border-radius: 4px; font-weight: 500; }
+    .filter-opt-item:hover { background: #edf2f7; color: #2b6cb0; }
     .filter-divider { height: 1px; background: #e2e8f0; margin: 4px 0; }
-    .filter-search-box { width: 100%; padding: 4px 6px; font-size: 10px; border: 1px solid #cbd5e0; border-radius: 4px; margin-bottom: 6px; outline: none; }
-    .filter-search-box:focus { border-color: #3182ce; }
-    .filter-checkbox-list { max-height: 140px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px; padding: 4px; background: #ffffff; }
-    .filter-checkbox-item { display: flex; align-items: center; gap: 6px; padding: 3px 4px; font-size: 9.5px; cursor: pointer; }
-    .filter-checkbox-item:hover { background: #f7fafc; }
-    .filter-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
+    .filter-search-box { width: 100%; padding: 3px 6px; font-size: 10px; border: 1px solid #cbd5e0; border-radius: 4px; margin-bottom: 4px; }
+    .filter-checkbox-list { max-height: 130px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px; padding: 3px; background: #faf5ff; }
+    .filter-checkbox-item { display: flex; align-items: center; gap: 4px; padding: 2px 3px; font-size: 9.5px; cursor: pointer; }
+    .filter-checkbox-item:hover { background: #ebf8ff; }
+    .filter-actions { display: flex; justify-content: flex-end; gap: 4px; margin-top: 6px; }
 
     td { padding: 4px 3px; border-bottom: 1px solid #edf2f7; text-align: right; white-space: nowrap; }
     td.text-left { text-align: left; }
@@ -79,7 +78,7 @@
     .btn-toggle { background: #3182ce; color: white; border: none; border-radius: 3px; font-size: 8.5px; padding: 1px 4px; cursor: pointer; font-weight: bold; margin-right: 3px; }
     .indent { padding-left: 14px !important; }
 
-    /* SEMAFORIZACIÓN: NEGATIVO ROJO, CERO AMARILLO, POSITIVO VERDE */
+    /* SEMAFORIZACIÓN DE VARIACIONES */
     .sem-rojo { color: #e53e3e; font-weight: bold; }
     .sem-amarillo { color: #d69e2e; font-weight: bold; }
     .sem-verde { color: #2f855a; font-weight: bold; }
@@ -116,7 +115,7 @@
 
   <!-- NAVEGACIÓN -->
   <div class="tabs-nav">
-    <button id="tab-macro" class="tab-btn activo" onclick="mostrarPestana('macro')">📦 1. Macro por Familia (Pareto 80/20 por VTA + PROY 26)</button>
+    <button id="tab-macro" class="tab-btn activo" onclick="mostrarPestana('macro')">📦 1. Macro por Familia / Gerencia (Pareto 80/20 por VTA + PROY 26)</button>
     <button id="tab-micro" class="tab-btn" onclick="mostrarPestana('micro')">🏢 2. Empresa / Cliente (Pareto 80/20 por VTA + PROY 26) + Cuadre</button>
     <button id="tab-charts" class="tab-btn" onclick="mostrarPestana('charts')">📈 3. Gráficos y Dashboard</button>
   </div>
@@ -228,6 +227,7 @@
     let paisSeleccionado = 'TODOS';
     let modoVistaMicro = 'cliente';
     let clientesExpandidos = {};
+    let familiasExpandidas = {};
 
     let filtrosExcelActivos = {};
     let ordenColumnas = { campo: null, dir: null };
@@ -352,7 +352,6 @@
     }
     function fmtN(n) { return !n || isNaN(n) ? "0" : Math.round(n).toLocaleString('en-US'); }
 
-    // FÓRMULA DE VARIACIÓN: ((VTA + PROY 26 / BASE) - 1) * 100
     function calcVarPct(vta26, base) {
       const v = Number(vta26) || 0;
       const b = Number(base) || 0;
@@ -360,7 +359,6 @@
       return (((v / b) - 1) * 100).toFixed(0);
     }
 
-    // SEMAFORIZACIÓN: NEGATIVO ROJO (< 0%), CERO AMARILLO (= 0%), POSITIVO VERDE (>= 1%)
     function getSemaforoClass(valPct) {
       const n = Number(valPct);
       if (n < 0) return 'sem-rojo';
@@ -408,7 +406,7 @@
       else render();
     }
 
-    /* FILTROS EMERGENTES ESTILO EXCEL CON ÍCONO 🔻 REESTRUCTURADO */
+    /* FILTROS EMERGENTES ESTILO EXCEL CON ÍCONO 🔻 */
     function abrirPopupFiltroExcel(event, campo, esNum) {
       event.stopPropagation();
       campoPopupActual = campo;
@@ -527,31 +525,49 @@
       return listC;
     }
 
+    /* PESTAÑA 1: FAMILIA MACRO CON GERENCIAS DESPLEGABLES DENTRO */
     function getMacroData() {
-      const map = {};
+      const mapF = {};
       let baseP = datosOriginales;
       if (paisSeleccionado !== 'TODOS') baseP = datosOriginales.filter(d => d.id_empresa === paisSeleccionado);
 
       baseP.forEach(item => {
         const fam = item.familias_agrupadas || 'SIN CLASIFICAR';
-        const key = (paisSeleccionado !== 'TODOS') ? `${paisSeleccionado}_${fam}` : fam;
-        if (!map[fam]) {
-          map[fam] = {
+        const ger = item.gerencia || 'GENERAL';
+        const keyMeta = (paisSeleccionado !== 'TODOS') ? `${paisSeleccionado}_${fam}` : fam;
+
+        if (!mapF[fam]) {
+          mapF[fam] = {
             id_empresa: (paisSeleccionado !== 'TODOS') ? paisSeleccionado : 'TODOS',
             familias_agrupadas: fam,
             ppto_2026: 0, vta_proy_26: 0, vta_25: 0, vta_24: 0, vta_23: 0,
-            ppto_2027_macro: metasMacroFamilia[key] || metasMacroFamilia[fam] || 0
+            ppto_2027_macro: metasMacroFamilia[keyMeta] || metasMacroFamilia[fam] || 0,
+            gerenciasMap: {}
           };
         }
-        map[fam].ppto_2026 += Number(item.ppto_2026 || 0);
-        map[fam].vta_proy_26 += Number(item.vta_proy_26 || 0);
-        map[fam].vta_25 += Number(item.vta_25 || 0);
-        map[fam].vta_24 += Number(item.vta_24 || 0);
-        map[fam].vta_23 += Number(item.vta_23 || 0);
+
+        mapF[fam].ppto_2026 += Number(item.ppto_2026 || 0);
+        mapF[fam].vta_proy_26 += Number(item.vta_proy_26 || 0);
+        mapF[fam].vta_25 += Number(item.vta_25 || 0);
+        mapF[fam].vta_24 += Number(item.vta_24 || 0);
+        mapF[fam].vta_23 += Number(item.vta_23 || 0);
+
+        if (!mapF[fam].gerenciasMap[ger]) {
+          mapF[fam].gerenciasMap[ger] = {
+            gerencia: ger,
+            ppto_2026: 0, vta_proy_26: 0, vta_25: 0, vta_24: 0, vta_23: 0, ppto_2027: 0
+          };
+        }
+        mapF[fam].gerenciasMap[ger].ppto_2026 += Number(item.ppto_2026 || 0);
+        mapF[fam].gerenciasMap[ger].vta_proy_26 += Number(item.vta_proy_26 || 0);
+        mapF[fam].gerenciasMap[ger].vta_25 += Number(item.vta_25 || 0);
+        mapF[fam].gerenciasMap[ger].vta_24 += Number(item.vta_24 || 0);
+        mapF[fam].gerenciasMap[ger].vta_23 += Number(item.vta_23 || 0);
+        mapF[fam].gerenciasMap[ger].ppto_2027 += Number(item.ppto_2027 || 0);
       });
 
       const totVta26 = baseP.reduce((s, d) => s + (d.vta_proy_26 || 0), 0);
-      let list = Object.values(map).sort((a, b) => b.vta_proy_26 - a.vta_proy_26);
+      let list = Object.values(mapF).sort((a, b) => b.vta_proy_26 - a.vta_proy_26);
 
       let acum = 0;
       list.forEach(r => {
@@ -562,6 +578,7 @@
         r.vta_26vs25 = calcVarPct(r.vta_proy_26, r.vta_25);
         r.vta_26vs24 = calcVarPct(r.vta_proy_26, r.vta_24);
         r.vta_26vs23 = calcVarPct(r.vta_proy_26, r.vta_23);
+        r.hijos = Object.values(r.gerenciasMap).sort((a,b) => b.vta_proy_26 - a.vta_proy_26);
       });
       return list;
     }
@@ -569,12 +586,10 @@
     function getFilteredData() {
       let base = (pestanaActiva === 'macro') ? getMacroData() : (modoVistaMicro === 'cliente' ? getClientesConsolidados() : datosOriginales);
 
-      // FILTRAR POR PAÍS
       if (paisSeleccionado !== 'TODOS') {
         base = base.filter(d => d.id_empresa === paisSeleccionado);
       }
 
-      // FILTRAR POR COLUMNAS EXCEL
       for (let campo in filtrosExcelActivos) {
         const permitidos = filtrosExcelActivos[campo];
         if (permitidos && permitidos.size > 0) {
@@ -586,7 +601,6 @@
         }
       }
 
-      // ORDENAR SI HAY COLUMNA SELECCIONADA
       if (ordenColumnas.campo) {
         const c = ordenColumnas.campo;
         const asc = ordenColumnas.dir === 'asc';
@@ -603,6 +617,11 @@
       }
 
       return base;
+    }
+
+    function toggleFam(fam) {
+      familiasExpandidas[fam] = !familiasExpandidas[fam];
+      render();
     }
 
     function toggleCli(cli) {
@@ -630,7 +649,7 @@
 
       if (pestanaActiva === 'macro') {
         thead.innerHTML = crearThHTML('Empresa (País)', 'id_empresa', false) +
-          crearThHTML('Familia Agrupada (Macro)', 'familias_agrupadas', false) +
+          crearThHTML('Familia Agrupada / Gerencias', 'familias_agrupadas', false) +
           crearThHTML('% Part. VTA 26', 'pctPart', true) +
           crearThHTML('% Acum (80/20)', 'pctAcum', true) +
           crearThHTML('PPTO 2026', 'ppto_2026', true) +
@@ -666,10 +685,13 @@
         data.forEach(r => {
           const isTop = r.pctAcum <= 80 || (r.pctAcum - r.pctPart) < 80;
           const badge = isTop ? '<span class="badge-top">Top 80%</span>' : '<span class="badge-sec">Secundario</span>';
+          const open = familiasExpandidas[r.familias_agrupadas] === true;
+          const icon = open ? '▼' : '▶';
 
-          const tr = document.createElement('tr');
-          tr.innerHTML = '<td class="text-left">' + r.id_empresa + '</td>' +
-            '<td class="text-left"><strong>' + r.familias_agrupadas + '</strong> ' + badge + '</td>' +
+          const trP = document.createElement('tr');
+          trP.className = 'row-padre';
+          trP.innerHTML = '<td class="text-left">' + r.id_empresa + '</td>' +
+            '<td class="text-left"><button class="btn-toggle" onclick="toggleFam(\'' + r.familias_agrupadas.replace(/'/g, "\\'") + '\')">' + icon + '</button><strong>' + r.familias_agrupadas + '</strong> ' + badge + '</td>' +
             '<td>' + r.pctPart.toFixed(1) + '%</td><td>' + r.pctAcum.toFixed(1) + '%</td>' +
             '<td>$' + fmtN(r.ppto_2026) + '</td><td>$' + fmtN(r.vta_proy_26) + '</td>' +
             '<td>$' + fmtN(r.vta_25) + '</td><td>$' + fmtN(r.vta_24) + '</td><td>$' + fmtN(r.vta_23) + '</td>' +
@@ -678,7 +700,31 @@
             '<td class="' + getSemaforoClass(r.vta_26vs25) + '">' + r.vta_26vs25 + '%</td>' +
             '<td class="' + getSemaforoClass(r.vta_26vs24) + '">' + r.vta_26vs24 + '%</td>' +
             '<td class="' + getSemaforoClass(r.vta_26vs23) + '">' + r.vta_26vs23 + '%</td>';
-          tbody.appendChild(tr);
+          tbody.appendChild(trP);
+
+          // FILAS HIJAS POR GERENCIA DENTRO DE LA FAMILIA
+          if (r.hijos) {
+            r.hijos.forEach(h => {
+              const trH = document.createElement('tr');
+              trH.className = 'row-hijo' + (open ? ' open' : '');
+
+              const hv27 = calcVarPct(h.vta_proy_26, h.ppto_2027);
+              const hv25 = calcVarPct(h.vta_proy_26, h.vta_25);
+              const hv24 = calcVarPct(h.vta_proy_26, h.vta_24);
+              const hv23 = calcVarPct(h.vta_proy_26, h.vta_23);
+
+              trH.innerHTML = '<td class="text-left indent">↳ ' + r.id_empresa + '</td>' +
+                '<td class="text-left indent" colspan="3">↳ Gerencia: <strong>' + h.gerencia + '</strong></td>' +
+                '<td>$' + fmtN(h.ppto_2026) + '</td><td>$' + fmtN(h.vta_proy_26) + '</td>' +
+                '<td>$' + fmtN(h.vta_25) + '</td><td>$' + fmtN(h.vta_24) + '</td><td>$' + fmtN(h.vta_23) + '</td>' +
+                '<td style="background:#f7fafc;"><input type="text" class="inp-ppto" value="' + fmtN(h.ppto_2027) + '" readonly style="background:#edf2f7; color:#718096; border:1px solid #cbd5e0;"></td>' +
+                '<td class="' + getSemaforoClass(hv27) + '">' + hv27 + '%</td>' +
+                '<td class="' + getSemaforoClass(hv25) + '">' + hv25 + '%</td>' +
+                '<td class="' + getSemaforoClass(hv24) + '">' + hv24 + '%</td>' +
+                '<td class="' + getSemaforoClass(hv23) + '">' + hv23 + '%</td>';
+              tbody.appendChild(trH);
+            });
+          }
         });
 
       } else {
