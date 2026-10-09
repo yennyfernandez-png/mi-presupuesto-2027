@@ -70,9 +70,9 @@
     tr.row-hijo.open { display: table-row; }
     tr.row-hijo td { color: #4a5568; }
 
-    /* INPUTS Y BADGES */
-    input.inp-ppto { width: 80px; padding: 2px 3px; font-weight: 700; border: 1px solid #3182ce; border-radius: 3px; text-align: right; font-size: 9.5px; color: #1a202c; }
-    input.inp-ppto:focus { background: #ebf8ff; outline: 1px solid #2b6cb0; }
+    /* INPUTS EDITABLES */
+    input.inp-ppto, input.inp-proy { width: 75px; padding: 2px 3px; font-weight: 700; border: 1px solid #3182ce; border-radius: 3px; text-align: right; font-size: 9.5px; color: #1a202c; background: #ffffff; }
+    input.inp-ppto:focus, input.inp-proy:focus { background: #ebf8ff; outline: 1px solid #2b6cb0; }
 
     .badge-top { background: #c6f6d5; color: #22543d; font-size: 8px; padding: 1px 3px; border-radius: 3px; font-weight: 700; }
     .badge-sec { background: #edf2f7; color: #718096; font-size: 8px; padding: 1px 3px; border-radius: 3px; }
@@ -80,7 +80,7 @@
     .btn-toggle { background: #3182ce; color: white; border: none; border-radius: 3px; font-size: 8.5px; padding: 1px 4px; cursor: pointer; font-weight: bold; margin-right: 3px; }
     .indent { padding-left: 14px !important; }
 
-    /* SEMAFORIZACIÓN DE VARIACIONES */
+    /* SEMAFORIZACIÓN */
     .sem-rojo { color: #e53e3e; font-weight: bold; }
     .sem-amarillo { color: #d69e2e; font-weight: bold; }
     .sem-verde { color: #2f855a; font-weight: bold; }
@@ -103,7 +103,7 @@
     .menu-item { padding: 6px 10px; font-size: 10px; cursor: pointer; color: #2d3748; }
     .menu-item:hover { background: #ebf8ff; color: #2b6cb0; }
 
-    /* MODAL DE AGREGAR PAÍS / GERENCIA */
+    /* MODAL NUEVO REGISTRO */
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 999; justify-content: center; align-items: center; }
     .modal-overlay.show { display: flex; }
     .modal-card { background: #ffffff; width: 380px; border-radius: 8px; padding: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: left; }
@@ -189,19 +189,19 @@
       </div>
       <div class="modal-form-group">
         <label>Gerencia (Nombre):</label>
-        <input type="text" id="modal-gerencia" placeholder="Ej. SUR, EXPRESS, OIL & GAS, NORTE, MINERÍA">
+        <input type="text" id="modal-gerencia" placeholder="Ej. ORIENTE, OCCIDENTE, SUR, NORTE">
       </div>
       <div class="modal-form-group">
         <label>Familia Agrupada:</label>
-        <input type="text" id="modal-familia" placeholder="Ej. SERVICIOS ROCKWELL, AUTOMATIZACION">
+        <input type="text" id="modal-familia" placeholder="Ej. AUTOMATIZACION, CONTROL INDUSTRIAL">
       </div>
       <div class="modal-form-group">
-        <label>Cliente (`razon_social_sec`):</label>
+        <label>Cliente (`razon_social`):</label>
         <input type="text" id="modal-cliente" placeholder="Ej. CLIENTE EJEMPLO S.A.">
       </div>
       <div class="modal-form-group">
-        <label>VTA + PROY 2026 ($):</label>
-        <input type="number" id="modal-vta26" placeholder="0" value="0">
+        <label>Proyección ($):</label>
+        <input type="number" id="modal-proyeccion" placeholder="0" value="0">
       </div>
       <div class="modal-form-group">
         <label>Presupuesto PPTO 2027 ($):</label>
@@ -244,7 +244,7 @@
           <tr id="tr-totales" class="row-totales"></tr>
         </thead>
         <tbody id="tb-body">
-          <tr><td colspan="15" style="text-align:center; padding:20px;">Cargando datos...</td></tr>
+          <tr><td colspan="17" style="text-align:center; padding:20px;">Cargando datos...</td></tr>
         </tbody>
       </table>
     </div>
@@ -306,7 +306,16 @@
       if (cacheEdic) {
         try {
           const mapE = JSON.parse(cacheEdic);
-          datosOriginales.forEach(d => { if (mapE[d.id] !== undefined) d.ppto_2027 = mapE[d.id]; });
+          datosOriginales.forEach(d => { 
+            if (mapE[d.id] !== undefined) {
+              if (typeof mapE[d.id] === 'object') {
+                d.ppto_2027 = mapE[d.id].ppto_2027 || 0;
+                d.proyeccion = mapE[d.id].proyeccion !== undefined ? mapE[d.id].proyeccion : d.proyeccion;
+              } else {
+                d.ppto_2027 = mapE[d.id];
+              }
+            }
+          });
         } catch(e){}
       }
       if (cacheMetas) {
@@ -329,7 +338,7 @@
         })
         .catch(e => {
           if (datosOriginales.length === 0) {
-            document.getElementById('tb-body').innerHTML = '<tr><td colspan="15" style="text-align:center; padding:20px;">Utilice el botón <strong>📁 Cargar CSV</strong> para cargar los datos.</td></tr>';
+            document.getElementById('tb-body').innerHTML = '<tr><td colspan="17" style="text-align:center; padding:20px;">Utilice el botón <strong>📁 Cargar CSV</strong> para cargar los datos.</td></tr>';
           }
         });
 
@@ -370,6 +379,7 @@
       return res;
     }
 
+    /* MAPEO DE FILAS DESDE EL CSV */
     function procesarFilas(filas) {
       const data = [];
       for (let i = 1; i < filas.length; i++) {
@@ -377,17 +387,20 @@
         if (!c || c.length < 4) continue;
         data.push({
           id: i,
-          id_empresa: cleanT(c[0]),
-          gerencia: cleanT(c[1]),
-          razon_social_sec: cleanT(c[2]),
-          familias_agrupadas: cleanT(c[3]),
-          nombre_familia: cleanT(c[4]),
-          ppto_2026: cleanN(c[5]),
-          vta_proy_26: cleanN(c[6]),
-          vta_23: cleanN(c[7]),
-          vta_24: cleanN(c[8]),
-          vta_25: cleanN(c[9]),
-          ppto_2027: cleanN(c[10]) || 0
+          id_empresa: cleanT(c[0]),          // Columna A
+          razon_social_sec: cleanT(c[1]),    // Columna B
+          rut_cliente_sec: cleanT(c[2]),     // Columna C
+          nombre_familia: cleanT(c[3]),      // Columna D
+          clasificacion: cleanT(c[4]),       // Columna E
+          familias_agrupadas: cleanT(c[5]),  // Columna F (FAMILIA AGRUPADA)
+          gerencia: cleanT(c[6]),            // Columna G
+          ppto_2026: cleanN(c[7]),           // Columna H
+          proyeccion: cleanN(c[8]) || 0,     // Columna I (PROYECCIÓN EDITABLE)
+          vta_23: cleanN(c[9]),              // Columna J
+          vta_24: cleanN(c[10]),             // Columna K
+          vta_25: cleanN(c[11]),             // Columna L
+          vta_26: cleanN(c[12]),             // Columna M (VTA 2026)
+          ppto_2027: cleanN(c[13]) || 0
         });
       }
 
@@ -395,7 +408,16 @@
       if (cacheEdic) {
         try {
           const mapE = JSON.parse(cacheEdic);
-          data.forEach(d => { if (mapE[d.id] !== undefined) d.ppto_2027 = mapE[d.id]; });
+          data.forEach(d => { 
+            if (mapE[d.id] !== undefined) {
+              if (typeof mapE[d.id] === 'object') {
+                d.ppto_2027 = mapE[d.id].ppto_2027 || 0;
+                d.proyeccion = mapE[d.id].proyeccion !== undefined ? mapE[d.id].proyeccion : d.proyeccion;
+              } else {
+                d.ppto_2027 = mapE[d.id];
+              }
+            }
+          });
         } catch(e){}
       }
 
@@ -415,6 +437,7 @@
     }
     function fmtN(n) { return !n || isNaN(n) ? "0" : Math.round(n).toLocaleString('en-US'); }
 
+    // FÓRMULA DE VARIACIÓN EXACTA: ((VTA + PROY 26 / BASE) - 1) * 100
     function calcVarPct(vta26, base) {
       const v = Number(vta26) || 0;
       const b = Number(base) || 0;
@@ -422,6 +445,7 @@
       return (((v / b) - 1) * 100).toFixed(0);
     }
 
+    // SEMAFORIZACIÓN: NEGATIVO ROJO (< 0%), CERO AMARILLO (= 0%), POSITIVO VERDE (>= 1%)
     function getSemaforoClass(valPct) {
       const n = Number(valPct);
       if (n < 0) return 'sem-rojo';
@@ -433,7 +457,12 @@
 
     function guardarLocalmente() {
       const mapE = {};
-      datosOriginales.forEach(d => mapE[d.id] = d.ppto_2027);
+      datosOriginales.forEach(d => {
+        mapE[d.id] = {
+          ppto_2027: d.ppto_2027,
+          proyeccion: d.proyeccion
+        };
+      });
       localStorage.setItem('presupuesto_ediciones_2027', JSON.stringify(mapE));
       localStorage.setItem('presupuesto_metas_macro', JSON.stringify(metasMacroFamilia));
       localStorage.setItem('presupuesto_cache_datos', JSON.stringify(datosOriginales));
@@ -456,7 +485,7 @@
       const gerencia = document.getElementById('modal-gerencia').value.trim() || 'GENERAL';
       const familia = document.getElementById('modal-familia').value.trim() || 'GENERAL';
       const cliente = document.getElementById('modal-cliente').value.trim() || 'CLIENTE NUEVO';
-      const v26 = cleanN(document.getElementById('modal-vta26').value);
+      const proy = cleanN(document.getElementById('modal-proyeccion').value);
       const p27 = cleanN(document.getElementById('modal-ppto27').value);
 
       const nuevoId = datosOriginales.length > 0 ? Math.max(...datosOriginales.map(d => d.id)) + 1 : 1;
@@ -466,11 +495,13 @@
         id_empresa: paisFinal,
         gerencia: gerencia,
         razon_social_sec: cliente,
+        rut_cliente_sec: '-',
         familias_agrupadas: familia,
         nombre_familia: familia,
+        clasificacion: 'PRODUCTOS',
         ppto_2026: 0,
-        vta_proy_26: v26,
-        vta_23: 0, vta_24: 0, vta_25: 0,
+        proyeccion: proy,
+        vta_23: 0, vta_24: 0, vta_25: 0, vta_26: 0,
         ppto_2027: p27
       });
 
@@ -601,11 +632,15 @@
 
       base.forEach(item => {
         const cli = item.razon_social_sec || 'SIN CLIENTE';
+        const vtaTotal26 = (item.vta_26 || 0) + (item.proyeccion || 0);
+
         if (!mapC[cli]) {
-          mapC[cli] = { id_empresa: item.id_empresa, razon_social_sec: cli, ppto_2026: 0, vta_proy_26: 0, vta_25: 0, vta_24: 0, vta_23: 0, ppto_2027: 0, hijos: [] };
+          mapC[cli] = { id_empresa: item.id_empresa, razon_social_sec: cli, ppto_2026: 0, proyeccion: 0, vta_26: 0, vta_proy_26: 0, vta_25: 0, vta_24: 0, vta_23: 0, ppto_2027: 0, hijos: [] };
         }
         mapC[cli].ppto_2026 += item.ppto_2026;
-        mapC[cli].vta_proy_26 += item.vta_proy_26;
+        mapC[cli].proyeccion += item.proyeccion;
+        mapC[cli].vta_26 += (item.vta_26 || 0);
+        mapC[cli].vta_proy_26 += vtaTotal26;
         mapC[cli].vta_25 += item.vta_25;
         mapC[cli].vta_24 += item.vta_24;
         mapC[cli].vta_23 += item.vta_23;
@@ -638,19 +673,22 @@
         const ger = item.gerencia || 'GENERAL';
         const emp = item.id_empresa;
         const keyMeta = (paisSeleccionado !== 'TODOS') ? `${paisSeleccionado}_${fam}` : fam;
+        const vtaTotal26 = (item.vta_26 || 0) + (item.proyeccion || 0);
 
         if (!mapF[fam]) {
           mapF[fam] = {
             id_empresa: (paisSeleccionado !== 'TODOS') ? paisSeleccionado : 'TODOS',
             familias_agrupadas: fam,
-            ppto_2026: 0, vta_proy_26: 0, vta_25: 0, vta_24: 0, vta_23: 0,
+            ppto_2026: 0, proyeccion: 0, vta_26: 0, vta_proy_26: 0, vta_25: 0, vta_24: 0, vta_23: 0,
             ppto_2027_macro: metasMacroFamilia[keyMeta] || metasMacroFamilia[fam] || 0,
             gerenciasMap: {}
           };
         }
 
         mapF[fam].ppto_2026 += Number(item.ppto_2026 || 0);
-        mapF[fam].vta_proy_26 += Number(item.vta_proy_26 || 0);
+        mapF[fam].proyeccion += Number(item.proyeccion || 0);
+        mapF[fam].vta_26 += Number(item.vta_26 || 0);
+        mapF[fam].vta_proy_26 += Number(vtaTotal26 || 0);
         mapF[fam].vta_25 += Number(item.vta_25 || 0);
         mapF[fam].vta_24 += Number(item.vta_24 || 0);
         mapF[fam].vta_23 += Number(item.vta_23 || 0);
@@ -660,18 +698,20 @@
           mapF[fam].gerenciasMap[gerKey] = {
             id_empresa: emp,
             gerencia: ger,
-            ppto_2026: 0, vta_proy_26: 0, vta_25: 0, vta_24: 0, vta_23: 0, ppto_2027: 0
+            ppto_2026: 0, proyeccion: 0, vta_26: 0, vta_proy_26: 0, vta_25: 0, vta_24: 0, vta_23: 0, ppto_2027: 0
           };
         }
         mapF[fam].gerenciasMap[gerKey].ppto_2026 += Number(item.ppto_2026 || 0);
-        mapF[fam].gerenciasMap[gerKey].vta_proy_26 += Number(item.vta_proy_26 || 0);
+        mapF[fam].gerenciasMap[gerKey].proyeccion += Number(item.proyeccion || 0);
+        mapF[fam].gerenciasMap[gerKey].vta_26 += Number(item.vta_26 || 0);
+        mapF[fam].gerenciasMap[gerKey].vta_proy_26 += Number(vtaTotal26 || 0);
         mapF[fam].gerenciasMap[gerKey].vta_25 += Number(item.vta_25 || 0);
         mapF[fam].gerenciasMap[gerKey].vta_24 += Number(item.vta_24 || 0);
         mapF[fam].gerenciasMap[gerKey].vta_23 += Number(item.vta_23 || 0);
         mapF[fam].gerenciasMap[gerKey].ppto_2027 += Number(item.ppto_2027 || 0);
       });
 
-      const totVta26 = baseP.reduce((s, d) => s + (d.vta_proy_26 || 0), 0);
+      const totVta26 = baseP.reduce((s, d) => s + ((d.vta_26 || 0) + (d.proyeccion || 0)), 0);
       let list = Object.values(mapF).sort((a, b) => b.vta_proy_26 - a.vta_proy_26);
 
       let acum = 0;
@@ -747,7 +787,7 @@
       document.getElementById('txt-filas').innerText = "Mostrando " + data.length + " registros de " + datosOriginales.length + " totales";
 
       if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="15" style="text-align:center; padding:15px;">No hay datos para mostrar. Presione <strong>🧹 Limpiar Filtros Excel</strong>.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="17" style="text-align:center; padding:15px;">No hay datos para mostrar. Presione <strong>🧹 Limpiar Filtros Excel</strong>.</td></tr>';
         trTot.innerHTML = '';
         return;
       }
@@ -758,6 +798,8 @@
           crearThHTML('% Part. VTA 26', 'pctPart', true) +
           crearThHTML('% Acum (80/20)', 'pctAcum', true) +
           crearThHTML('PPTO 2026', 'ppto_2026', true) +
+          crearThHTML('PROYECCION', 'proyeccion', true) +
+          crearThHTML('VTA 2026', 'vta_26', true) +
           crearThHTML('VTA + PROY 26', 'vta_proy_26', true) +
           crearThHTML('VTA 25', 'vta_25', true) +
           crearThHTML('VTA 24', 'vta_24', true) +
@@ -769,18 +811,20 @@
           crearThHTML('VTA 26VS23', 'vta_26vs23', true);
 
         const tP26 = data.reduce((s, d) => s + d.ppto_2026, 0);
-        const tV26 = data.reduce((s, d) => s + d.vta_proy_26, 0);
+        const tProy = data.reduce((s, d) => s + d.proyeccion, 0);
+        const tV26Real = data.reduce((s, d) => s + (d.vta_26 || 0), 0);
+        const tV26Tot = data.reduce((s, d) => s + d.vta_proy_26, 0);
         const tV25 = data.reduce((s, d) => s + d.vta_25, 0);
         const tV24 = data.reduce((s, d) => s + d.vta_24, 0);
         const tV23 = data.reduce((s, d) => s + d.vta_23, 0);
         const tP27 = data.reduce((s, d) => s + d.ppto_2027_macro, 0);
 
-        const v27_tot = calcVarPct(tV26, tP27);
-        const v25_tot = calcVarPct(tV26, tV25);
-        const v24_tot = calcVarPct(tV26, tV24);
-        const v23_tot = calcVarPct(tV26, tV23);
+        const v27_tot = calcVarPct(tV26Tot, tP27);
+        const v25_tot = calcVarPct(tV26Tot, tV25);
+        const v24_tot = calcVarPct(tV26Tot, tV24);
+        const v23_tot = calcVarPct(tV26Tot, tV23);
 
-        trTot.innerHTML = '<td class="text-left" colspan="2">TOTAL META MACRO</td><td>100%</td><td>100%</td><td>$' + fmtN(tP26) + '</td><td>$' + fmtN(tV26) + '</td><td>$' + fmtN(tV25) + '</td><td>$' + fmtN(tV24) + '</td><td>$' + fmtN(tV23) + '</td><td id="tot-p27">$' + fmtN(tP27) + '</td>' +
+        trTot.innerHTML = '<td class="text-left" colspan="2">TOTAL META MACRO</td><td>100%</td><td>100%</td><td>$' + fmtN(tP26) + '</td><td>$' + fmtN(tProy) + '</td><td>$' + fmtN(tV26Real) + '</td><td>$' + fmtN(tV26Tot) + '</td><td>$' + fmtN(tV25) + '</td><td>$' + fmtN(tV24) + '</td><td>$' + fmtN(tV23) + '</td><td id="tot-p27">$' + fmtN(tP27) + '</td>' +
           '<td class="' + getSemaforoClass(v27_tot) + '">' + v27_tot + '%</td>' +
           '<td class="' + getSemaforoClass(v25_tot) + '">' + v25_tot + '%</td>' +
           '<td class="' + getSemaforoClass(v24_tot) + '">' + v24_tot + '%</td>' +
@@ -798,7 +842,10 @@
           trP.innerHTML = '<td class="text-left">' + r.id_empresa + '</td>' +
             '<td class="text-left"><button class="btn-toggle" onclick="toggleFam(\'' + r.familias_agrupadas.replace(/'/g, "\\'") + '\')">' + icon + '</button><strong>' + r.familias_agrupadas + '</strong> ' + badge + '</td>' +
             '<td>' + r.pctPart.toFixed(1) + '%</td><td>' + r.pctAcum.toFixed(1) + '%</td>' +
-            '<td>$' + fmtN(r.ppto_2026) + '</td><td>$' + fmtN(r.vta_proy_26) + '</td>' +
+            '<td>$' + fmtN(r.ppto_2026) + '</td>' +
+            '<td style="background:#ebf8ff;">$' + fmtN(r.proyeccion) + '</td>' +
+            '<td>$' + fmtN(r.vta_26) + '</td>' +
+            '<td>$' + fmtN(r.vta_proy_26) + '</td>' +
             '<td>$' + fmtN(r.vta_25) + '</td><td>$' + fmtN(r.vta_24) + '</td><td>$' + fmtN(r.vta_23) + '</td>' +
             '<td style="background:#ebf8ff;"><input type="text" class="inp-ppto" value="' + fmtN(r.ppto_2027_macro) + '" onfocus="focusZero(this)" oninput="updMetaMacro(this, \'' + r.familias_agrupadas + '\')" onblur="blurFmt(this)"></td>' +
             '<td class="' + getSemaforoClass(r.vta_26vs27) + '">' + r.vta_26vs27 + '%</td>' +
@@ -819,7 +866,10 @@
 
               trH.innerHTML = '<td class="text-left indent">↳ ' + h.id_empresa + '</td>' +
                 '<td class="text-left indent" colspan="3">↳ Gerencia: <strong>' + h.gerencia + '</strong></td>' +
-                '<td>$' + fmtN(h.ppto_2026) + '</td><td>$' + fmtN(h.vta_proy_26) + '</td>' +
+                '<td>$' + fmtN(h.ppto_2026) + '</td>' +
+                '<td>$' + fmtN(h.proyeccion) + '</td>' +
+                '<td>$' + fmtN(h.vta_26) + '</td>' +
+                '<td>$' + fmtN(h.vta_proy_26) + '</td>' +
                 '<td>$' + fmtN(h.vta_25) + '</td><td>$' + fmtN(h.vta_24) + '</td><td>$' + fmtN(h.vta_23) + '</td>' +
                 '<td style="background:#f7fafc;"><input type="text" class="inp-ppto" value="' + fmtN(h.ppto_2027) + '" readonly style="background:#edf2f7; color:#718096; border:1px solid #cbd5e0;"></td>' +
                 '<td class="' + getSemaforoClass(hv27) + '">' + hv27 + '%</td>' +
@@ -833,16 +883,18 @@
 
       } else {
         const tP26 = data.reduce((s, d) => s + d.ppto_2026, 0);
-        const tV26 = data.reduce((s, d) => s + d.vta_proy_26, 0);
+        const tProy = data.reduce((s, d) => s + d.proyeccion, 0);
+        const tV26Real = data.reduce((s, d) => s + (d.vta_26 || 0), 0);
+        const tV26Tot = data.reduce((s, d) => s + (d.vta_proy_26 || ((d.vta_26||0)+(d.proyeccion||0))), 0);
         const tV25 = data.reduce((s, d) => s + d.vta_25, 0);
         const tV24 = data.reduce((s, d) => s + d.vta_24, 0);
         const tV23 = data.reduce((s, d) => s + d.vta_23, 0);
         const tP27 = datosOriginales.reduce((s, d) => s + d.ppto_2027, 0);
 
-        const v27_tot = calcVarPct(tV26, tP27);
-        const v25_tot = calcVarPct(tV26, tV25);
-        const v24_tot = calcVarPct(tV26, tV24);
-        const v23_tot = calcVarPct(tV26, tV23);
+        const v27_tot = calcVarPct(tV26Tot, tP27);
+        const v25_tot = calcVarPct(tV26Tot, tV25);
+        const v24_tot = calcVarPct(tV26Tot, tV24);
+        const v23_tot = calcVarPct(tV26Tot, tV23);
 
         if (modoVistaMicro === 'cliente') {
           thead.innerHTML = crearThHTML('Empresa (País)', 'id_empresa', false) +
@@ -850,6 +902,8 @@
             crearThHTML('% Part. VTA 26', 'pctPart', true) +
             crearThHTML('% Acum (80/20)', 'pctAcum', true) +
             crearThHTML('PPTO 2026', 'ppto_2026', true) +
+            crearThHTML('PROYECCION', 'proyeccion', true) +
+            crearThHTML('VTA 2026', 'vta_26', true) +
             crearThHTML('VTA + PROY 26', 'vta_proy_26', true) +
             crearThHTML('VTA 25', 'vta_25', true) +
             crearThHTML('VTA 24', 'vta_24', true) +
@@ -860,7 +914,7 @@
             crearThHTML('VTA 26VS24', 'vta_26vs24', true) +
             crearThHTML('VTA 26VS23', 'vta_26vs23', true);
 
-          trTot.innerHTML = '<td class="text-left" colspan="2">TOTAL EMPRESA / CLIENTES</td><td>100%</td><td>100%</td><td>$' + fmtN(tP26) + '</td><td>$' + fmtN(tV26) + '</td><td>$' + fmtN(tV25) + '</td><td>$' + fmtN(tV24) + '</td><td>$' + fmtN(tV23) + '</td><td id="tot-p27">$' + fmtN(tP27) + '</td>' +
+          trTot.innerHTML = '<td class="text-left" colspan="2">TOTAL EMPRESA / CLIENTES</td><td>100%</td><td>100%</td><td>$' + fmtN(tP26) + '</td><td>$' + fmtN(tProy) + '</td><td>$' + fmtN(tV26Real) + '</td><td>$' + fmtN(tV26Tot) + '</td><td>$' + fmtN(tV25) + '</td><td>$' + fmtN(tV24) + '</td><td>$' + fmtN(tV23) + '</td><td id="tot-p27">$' + fmtN(tP27) + '</td>' +
             '<td class="' + getSemaforoClass(v27_tot) + '">' + v27_tot + '%</td>' +
             '<td class="' + getSemaforoClass(v25_tot) + '">' + v25_tot + '%</td>' +
             '<td class="' + getSemaforoClass(v24_tot) + '">' + v24_tot + '%</td>' +
@@ -878,7 +932,10 @@
             trP.innerHTML = '<td class="text-left"><button class="btn-toggle" onclick="toggleCli(\'' + (cli.nombre || cli.razon_social_sec).replace(/'/g, "\\'") + '\')">' + icon + '</button>' + cli.id_empresa + '</td>' +
               '<td class="text-left">' + (cli.nombre || cli.razon_social_sec) + ' ' + badge + '</td>' +
               '<td>' + cli.pctPart.toFixed(1) + '%</td><td>' + cli.pctAcum.toFixed(1) + '%</td>' +
-              '<td>$' + fmtN(cli.ppto_2026) + '</td><td>$' + fmtN(cli.vta_proy_26) + '</td>' +
+              '<td>$' + fmtN(cli.ppto_2026) + '</td>' +
+              '<td>$' + fmtN(cli.proyeccion) + '</td>' +
+              '<td>$' + fmtN(cli.vta_26) + '</td>' +
+              '<td>$' + fmtN(cli.vta_proy_26) + '</td>' +
               '<td>$' + fmtN(cli.vta_25) + '</td><td>$' + fmtN(cli.vta_24) + '</td><td>$' + fmtN(cli.vta_23) + '</td>' +
               '<td style="background:#e2e8f0;"><input type="text" class="inp-ppto" value="' + fmtN(cli.ppto_2027) + '" onfocus="focusZero(this)" oninput="updConsolidadoCli(this, \'' + (cli.nombre || cli.razon_social_sec).replace(/'/g, "\\'") + '\')" onblur="blurFmt(this)"></td>' +
               '<td class="' + getSemaforoClass(cli.vta_26vs27) + '">' + cli.vta_26vs27 + '%</td>' +
@@ -891,14 +948,18 @@
               const trH = document.createElement('tr');
               trH.className = 'row-hijo' + (open ? ' open' : '');
 
-              const hv27 = calcVarPct(h.vta_proy_26, h.ppto_2027);
-              const hv25 = calcVarPct(h.vta_proy_26, h.vta_25);
-              const hv24 = calcVarPct(h.vta_proy_26, h.vta_24);
-              const hv23 = calcVarPct(h.vta_proy_26, h.vta_23);
+              const hv26 = (h.vta_26 || 0) + (h.proyeccion || 0);
+              const hv27 = calcVarPct(hv26, h.ppto_2027);
+              const hv25 = calcVarPct(hv26, h.vta_25);
+              const hv24 = calcVarPct(hv26, h.vta_24);
+              const hv23 = calcVarPct(hv26, h.vta_23);
 
               trH.innerHTML = '<td class="text-left indent">↳ ' + (h.gerencia || 'GENERAL') + '</td>' +
                 '<td class="text-left" colspan="3">↳ <strong>' + h.familias_agrupadas + '</strong> (' + h.nombre_familia + ')</td>' +
-                '<td>$' + fmtN(h.ppto_2026) + '</td><td>$' + fmtN(h.vta_proy_26) + '</td>' +
+                '<td>$' + fmtN(h.ppto_2026) + '</td>' +
+                '<td style="background:#ebf8ff;"><input type="text" class="inp-proy" value="' + fmtN(h.proyeccion) + '" onfocus="focusZero(this)" oninput="updItemProyeccion(this, ' + h.id + ')" onblur="blurFmt(this)"></td>' +
+                '<td>$' + fmtN(h.vta_26) + '</td>' +
+                '<td>$' + fmtN(hv26) + '</td>' +
                 '<td>$' + fmtN(h.vta_25) + '</td><td>$' + fmtN(h.vta_24) + '</td><td>$' + fmtN(h.vta_23) + '</td>' +
                 '<td style="background:#ebf8ff;"><input type="text" class="inp-ppto" value="' + fmtN(h.ppto_2027) + '" onfocus="focusZero(this)" oninput="updItemPpto(this, ' + h.id + ')" onblur="blurFmt(this)"></td>' +
                 '<td class="' + getSemaforoClass(hv27) + '">' + hv27 + '%</td>' +
@@ -916,6 +977,8 @@
             crearThHTML('Familia', 'familias_agrupadas', false) +
             crearThHTML('Nombre Familia', 'nombre_familia', false) +
             crearThHTML('PPTO 2026', 'ppto_2026', true) +
+            crearThHTML('PROYECCION', 'proyeccion', true) +
+            crearThHTML('VTA 2026', 'vta_26', true) +
             crearThHTML('VTA + PROY 26', 'vta_proy_26', true) +
             crearThHTML('VTA 25', 'vta_25', true) +
             crearThHTML('VTA 24', 'vta_24', true) +
@@ -926,7 +989,7 @@
             crearThHTML('VTA 26VS24', 'vta_26vs24', true) +
             crearThHTML('VTA 26VS23', 'vta_26vs23', true);
 
-          trTot.innerHTML = '<td class="text-left" colspan="5">TOTAL DETALLE CLIENTES</td><td>$' + fmtN(tP26) + '</td><td>$' + fmtN(tV26) + '</td><td>$' + fmtN(tV25) + '</td><td>$' + fmtN(tV24) + '</td><td>$' + fmtN(tV23) + '</td><td id="tot-p27">$' + fmtN(tP27) + '</td>' +
+          trTot.innerHTML = '<td class="text-left" colspan="5">TOTAL DETALLE CLIENTES</td><td>$' + fmtN(tP26) + '</td><td>$' + fmtN(tProy) + '</td><td>$' + fmtN(tV26Real) + '</td><td>$' + fmtN(tV26Tot) + '</td><td>$' + fmtN(tV25) + '</td><td>$' + fmtN(tV24) + '</td><td>$' + fmtN(tV23) + '</td><td id="tot-p27">$' + fmtN(tP27) + '</td>' +
             '<td class="' + getSemaforoClass(v27_tot) + '">' + v27_tot + '%</td>' +
             '<td class="' + getSemaforoClass(v25_tot) + '">' + v25_tot + '%</td>' +
             '<td class="' + getSemaforoClass(v24_tot) + '">' + v24_tot + '%</td>' +
@@ -934,10 +997,11 @@
 
           tbody.innerHTML = '';
           data.forEach(r => {
-            const v27 = calcVarPct(r.vta_proy_26, r.ppto_2027);
-            const v25 = calcVarPct(r.vta_proy_26, r.vta_25);
-            const v24 = calcVarPct(r.vta_proy_26, r.vta_24);
-            const v23 = calcVarPct(r.vta_proy_26, r.vta_23);
+            const rv26 = (r.vta_26 || 0) + (r.proyeccion || 0);
+            const v27 = calcVarPct(rv26, r.ppto_2027);
+            const v25 = calcVarPct(rv26, r.vta_25);
+            const v24 = calcVarPct(rv26, r.vta_24);
+            const v23 = calcVarPct(rv26, r.vta_23);
 
             const tr = document.createElement('tr');
             tr.innerHTML = '<td class="text-left">' + r.id_empresa + '</td>' +
@@ -945,7 +1009,10 @@
               '<td class="text-left">' + r.razon_social_sec + '</td>' +
               '<td class="text-left">' + r.familias_agrupadas + '</td>' +
               '<td class="text-left">' + r.nombre_familia + '</td>' +
-              '<td>$' + fmtN(r.ppto_2026) + '</td><td>$' + fmtN(r.vta_proy_26) + '</td>' +
+              '<td>$' + fmtN(r.ppto_2026) + '</td>' +
+              '<td style="background:#ebf8ff;"><input type="text" class="inp-proy" value="' + fmtN(r.proyeccion) + '" onfocus="focusZero(this)" oninput="updItemProyeccion(this, ' + r.id + ')" onblur="blurFmt(this)"></td>' +
+              '<td>$' + fmtN(r.vta_26) + '</td>' +
+              '<td>$' + fmtN(rv26) + '</td>' +
               '<td>$' + fmtN(r.vta_25) + '</td><td>$' + fmtN(r.vta_24) + '</td><td>$' + fmtN(r.vta_23) + '</td>' +
               '<td style="background:#ebf8ff;"><input type="text" class="inp-ppto" value="' + fmtN(r.ppto_2027) + '" onfocus="focusZero(this)" oninput="updItemPpto(this, ' + r.id + ')" onblur="blurFmt(this)"></td>' +
               '<td class="' + getSemaforoClass(v27) + '">' + v27 + '%</td>' +
@@ -958,13 +1025,11 @@
         renderCuadre();
       }
 
-      // VINCULAR EVENTO DE PEGADO MULTI-FILA DESDE EXCEL
       conectarEventoPegadoExcel();
     }
 
-    /* MÓDULO PARA PEGAR MÚLTIPLES FILAS DESDE EXCEL DE FORMA VERTICAL */
     function conectarEventoPegadoExcel() {
-      const inputs = document.querySelectorAll('input.inp-ppto');
+      const inputs = document.querySelectorAll('input.inp-ppto, input.inp-proy');
       inputs.forEach(inp => {
         inp.removeEventListener('paste', manejarPegadoMultiFila);
         inp.addEventListener('paste', manejarPegadoMultiFila);
@@ -977,12 +1042,14 @@
 
       if (!pastedData) return;
 
-      // SI CONTIENE SALTICOS DE LÍNEA (PEGASTE VARIAS CELDAS DE EXCEL)
       if (pastedData.includes('\n') || pastedData.includes('\r')) {
         e.preventDefault();
         const lineas = pastedData.split(/\r\n|\n/).map(l => l.trim()).filter(l => l.length > 0);
 
-        const allInputs = Array.from(document.querySelectorAll('input.inp-ppto:not([readonly])'));
+        const esProy = e.target.classList.contains('inp-proy');
+        const selector = esProy ? 'input.inp-proy' : 'input.inp-ppto:not([readonly])';
+
+        const allInputs = Array.from(document.querySelectorAll(selector));
         const indexActual = allInputs.indexOf(e.target);
 
         if (indexActual !== -1) {
@@ -1048,10 +1115,11 @@
     function updConsolidadoCli(inp, cli) {
       const tot = cleanN(inp.value);
       const items = datosOriginales.filter(d => (d.razon_social_sec || 'SIN CLIENTE') === cli);
-      const sumV = items.reduce((s, i) => s + i.vta_proy_26, 0);
+      const sumV = items.reduce((s, i) => s + (i.vta_26 || 0) + (i.proyeccion || 0), 0);
 
       items.forEach(i => {
-        if (sumV > 0) i.ppto_2027 = Math.round((i.vta_proy_26 / sumV) * tot);
+        const vtaTotalI = (i.vta_26 || 0) + (i.proyeccion || 0);
+        if (sumV > 0) i.ppto_2027 = Math.round((vtaTotalI / sumV) * tot);
         else i.ppto_2027 = Math.round(tot / items.length);
       });
       updTotalesOnly();
@@ -1061,6 +1129,12 @@
       const v = cleanN(inp.value);
       const item = datosOriginales.find(d => d.id === id);
       if (item) { item.ppto_2027 = v; updTotalesOnly(); }
+    }
+
+    function updItemProyeccion(inp, id) {
+      const v = cleanN(inp.value);
+      const item = datosOriginales.find(d => d.id === id);
+      if (item) { item.proyeccion = v; render(); }
     }
 
     function updTotalesOnly() {
@@ -1083,8 +1157,9 @@
       const mapC = {};
       data.forEach(d => {
         const c = d.razon_social_sec || 'OTROS';
+        const v26Total = (d.vta_26 || 0) + (d.proyeccion || 0);
         if (!mapC[c]) mapC[c] = { v25: 0, v26: 0, p27: 0 };
-        mapC[c].v25 += d.vta_25; mapC[c].v26 += d.vta_proy_26; mapC[c].p27 += d.ppto_2027;
+        mapC[c].v25 += d.vta_25; mapC[c].v26 += v26Total; mapC[c].p27 += d.ppto_2027;
       });
 
       const topC = Object.entries(mapC).sort((a,b) => b[1].p27 - a[1].p27).slice(0, 10);
@@ -1135,18 +1210,18 @@
 
     function copiarAlPortapapeles() {
       const data = getFilteredData();
-      let clip = "Id_empresa\tGerencia\trazon_social_sec\tFamilias Agrupadas\tnombre_familia\tPPTO 2026\tVTA + PROY 26\tVTA 23\tVTA 24\tVTA 25\tPPTO 2027\n";
+      let clip = "id_empresa\trazon_social_sec\trut_cliente_sec\tnombre_familia\tclasificacion\tfamilias_agrupadas\tgerencia\tPPTO 2026\tPROYECCION\tVTA 23\tVTA 24\tVTA 25\tVTA 26\tPPTO 2027\n";
       data.forEach(d => {
-        clip += d.id_empresa + '\t' + d.gerencia + '\t' + d.razon_social_sec + '\t' + d.familias_agrupadas + '\t' + d.nombre_familia + '\t' + d.ppto_2026 + '\t' + d.vta_proy_26 + '\t' + d.vta_23 + '\t' + d.vta_24 + '\t' + d.vta_25 + '\t' + d.ppto_2027 + '\n';
+        clip += d.id_empresa + '\t' + d.razon_social_sec + '\t' + d.rut_cliente_sec + '\t' + d.nombre_familia + '\t' + d.clasificacion + '\t' + d.familias_agrupadas + '\t' + d.gerencia + '\t' + d.ppto_2026 + '\t' + d.proyeccion + '\t' + d.vta_23 + '\t' + d.vta_24 + '\t' + d.vta_25 + '\t' + d.vta_26 + '\t' + d.ppto_2027 + '\n';
       });
       navigator.clipboard.writeText(clip).then(() => alert("¡Datos copiados al portapapeles!"));
     }
 
     function descargarCSV() {
       const data = getFilteredData();
-      let csv = "\uFEFFId_empresa,Gerencia,razon_social_sec,Familias Agrupadas,nombre_familia,PPTO 2026,VTA + PROY 26,VTA 23,VTA 24,VTA 25,PPTO 2027\n";
+      let csv = "\uFEFFid_empresa,razon_social_sec,rut_cliente_sec,nombre_familia,clasificacion,familias_agrupadas,gerencia,PPTO 2026,PROYECCION,VTA 23,VTA 24,VTA 25,VTA 26,PPTO 2027\n";
       data.forEach(d => {
-        csv += `"${d.id_empresa}","${d.gerencia}","${d.razon_social_sec}","${d.familias_agrupadas}","${d.nombre_familia}",${d.ppto_2026},${d.vta_proy_26},${d.vta_23},${d.vta_24},${d.vta_25},${d.ppto_2027}\n`;
+        csv += `"${d.id_empresa}","${d.razon_social_sec}","${d.rut_cliente_sec}","${d.nombre_familia}","${d.clasificacion}","${d.familias_agrupadas}","${d.gerencia}",${d.ppto_2026},${d.proyeccion},${d.vta_23},${d.vta_24},${d.vta_25},${d.vta_26},${d.ppto_2027}\n`;
       });
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const link = document.createElement("a");
